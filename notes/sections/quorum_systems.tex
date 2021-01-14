@@ -1,0 +1,85 @@
+\section{Quorum Systems}
+These definitions are taken from \cite{naor1998load} and
+\cite{vukolic2013origin}.
+%
+Given a set $X = \set{x_1, \ldots, x_n}$, a \defword{quorum system} over $X$ is
+a set $Q = \set{q_1, \ldots, q_m}$ of subsets of $X$, called \defword{quorums},
+such that every pair of quorums intersect. That is, for every $q_1, q_2 \in
+Q$, $q_1 \cap q_2 \neq \emptyset$.
+
+A quorum system $Q$ is a \defword{coterie} if there does not exist quorums
+$q_1, q_2 \in Q$ such that $q_1 \subset q_2$. In other words, a coterie is a
+quorum system that does not contain some quorum $q_1$ that is a strict subset
+of some other quorum $q_2$.
+
+Let $P, Q$ be two coteries over the same set $X$. $P$ \defword{dominates} $Q$,
+denoted $P > Q$, if $P \neq Q$ and for every $q \in Q$, there exists some $p
+\in P$ such that $p \subseteq q$. A coterie $Q$ is \defword{dominated} if there
+exists some coterie $P$ that dominates it.
+
+\begin{example}
+  Let $P$ be the majority quorum system over the set $X = \set{a, b, c}$. That
+  is, $P = \set{\set{a, b}, \set{a, c}, \set{b, c}}$. Let $Q = \set{\set{a, b,
+  c}}$. Note that both quorum systems are coteries. $P$ dominates $Q$. To see
+  this, we first confirm that $P \neq Q$. Next, we consider every $q \in Q$ and
+  find a corresponding $p \in P$ where $p \subseteq q$. Here, we only have one
+  choice for $q$ (i.e. $q = \set{a, b, c}$), and for every $p \in P$, $p
+  \subseteq q$.
+\end{example}
+
+There is an intuitive way to think about non-dominated coteries. A coterie $Q$
+is non-dominated if (1) removing any element from any quorum would make $Q$ no
+longer a coterie and (2) there are no other quorums that we can add to $Q$
+while preserving the fact that $Q$ is a coterie. Here's why. (1) Assume for
+contradiction that we remove some element from some quorum in $Q$ to
+form a new coterie $P$. $P$ dominates $Q$ in the obvious way, but $Q$ is
+non-dominated. (2) Assume for contradiction that we add some quorum to $Q$ to
+form a new coterie $P$. Again, $P$ dominates $Q$ in the obvious way, but $Q$ is
+non-dominated. Intuitively, a non-dominated coterie is a maximal coterie (we
+cannot add any more quorums) with minimal quorums (we cannot remove any
+elements from any quorums).
+
+\NOTE[michael]{%
+  I think domination will be an important property for recursive quorum
+  systems. I think there are some quorum systems that we cannot form as a
+  recursive quorum system, but we can form a recursive quorum system that
+  dominates it. The definition of domination that I found is only defined on
+  coteries. Can we define this without coteries? I think so, but we have to
+  double check.
+}
+
+Let $\sigma: Q \to [0, 1]$ be a discrete probability distribution over the
+quorums of $Q$ (i.e., $\sum_{q \in Q} \sigma(q) = 1$). We call $\sigma$ a
+\defword{strategy}. Intuitively, $\sigma$ is a strategy to pick quorums at
+random. We have the following definitions.
+\begin{align*}
+  l_\sigma(x) &\defeq \sum_{\setst{q \in Q}{x \in q}} \sigma(q) \\
+  L_\sigma(Q) &\defeq \max_{x \in X} l_\sigma(x) \\
+  L(Q)        &\defeq \min_\sigma L_\sigma(Q)
+\end{align*}
+$l_\sigma(x)$ is the load on $x$ given some strategy $\sigma$. $L_\sigma(Q)$ is
+the load on most loaded element $x$. $L(Q)$ is the \defword{load} of the best
+possible strategy. Intuitively, the lower the load of a quorum system, the
+higher the throughput it can support.
+
+\begin{example}
+  Consider the majority quorum system $Q = \set{\set{a, b}, \set{a, c}, \set{b,
+  c}}$ on elements $X = \set{a, b, c}$. Let $\sigma(\set{a, b}) =
+  \sigma(\set{a, c}) = 0.5$ and $\sigma(\set{b, c}) = 0$.
+  \begin{align*}
+    l_\sigma(a) &= \sigma(\set{a, b}) + \sigma(\set{a, c}) = 0.5 + 0.5 = 1 \\
+    l_\sigma(b) &= \sigma(\set{a, b}) + \sigma(\set{b, c}) = 0.5 + 0 = 0.5 \\
+    l_\sigma(c) &= \sigma(\set{a, c}) + \sigma(\set{b, c}) = 0.5 + 0 = 0.5 \\
+    L_\sigma(Q) &= \max(1, 0.5, 0.5) = 1
+  \end{align*}
+  The load of $Q$ with respect to $\sigma$ is 1, but the load $L(Q)$ is not 1
+  because $\sigma$ is not an optimal strategy. If we instead choose
+  $\sigma_{\text{opt}}(-) = \frac{1}{3}$, the load is reduced to $\frac{2}{3}$
+  which is optimal.
+\end{example}
+
+The \defword{resilience} or \defword{fault tolerance} of a quorum system $Q$ is
+the largest number $f$ such that for every subset $F \subseteq X$ with $|F| =
+f$, there still exists some quorum $q \in Q$ such that $q \cap F = \emptyset$.
+Intuitively, a quorum system has fault tolerance $f$ if we can fail an
+arbitrary set of $f$ elements and still have some quorum left.

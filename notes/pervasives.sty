@@ -1,0 +1,184 @@
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{environ}
+\usepackage{etoolbox}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{tcolorbox}
+\usepackage{tikz}
+\usepackage{xcolor}
+\tcbuselibrary{breakable}
+\tcbuselibrary{skins}
+
+% A pretty color palette taken from https://flatuicolors.com/palette/defo. To
+% see a preview of the different colors, use the \showcolors command below.
+\definecolor{flatdarkgray}{HTML}{7F8C8D}
+\definecolor{flatgray}{HTML}{BDC3C7}
+\definecolor{flatred}{HTML}{C0392B}
+\definecolor{flatorange}{HTML}{D35400}
+\definecolor{flatyellow}{HTML}{F39C12}
+\definecolor{flatdenim}{HTML}{2C3E50}
+\definecolor{flatpurple}{HTML}{8E44AD}
+\definecolor{flatblue}{HTML}{2980B9}
+\definecolor{flatgreen}{HTML}{27AE60}
+\definecolor{flatcyan}{HTML}{16A085}
+\definecolor{flatdarkgrayalt}{HTML}{95A5A6}
+\definecolor{flatgrayalt}{HTML}{ECF0F1}
+\definecolor{flatredalt}{HTML}{E74C3C}
+\definecolor{flatorangealt}{HTML}{E67E22}
+\definecolor{flatyellowalt}{HTML}{F1C40F}
+\definecolor{flatdenimalt}{HTML}{34495E}
+\definecolor{flatpurplealt}{HTML}{9B59B6}
+\definecolor{flatbluealt}{HTML}{3498DB}
+\definecolor{flatgreenalt}{HTML}{2ECC71}
+\definecolor{flatcyanalt}{HTML}{1ABC9C}
+\definecolor{flatbrown}{HTML}{836953}
+
+\newcommand{\showcolors}{%
+  \begin{center}
+    \begin{tikzpicture}
+      \tikzstyle{swatch}=[minimum width=3cm, minimum height=0.5cm, y=0.5cm]
+      \node[swatch, fill=flatdarkgray]    at (0, 9) {\texttt{flatdarkgray}};
+      \node[swatch, fill=flatgray]        at (0, 8) {\texttt{flatgray}};
+      \node[swatch, fill=flatred]         at (0, 7) {\texttt{flatred}};
+      \node[swatch, fill=flatorange]      at (0, 6) {\texttt{flatorange}};
+      \node[swatch, fill=flatyellow]      at (0, 5) {\texttt{flatyellow}};
+      \node[swatch, fill=flatdenim]       at (0, 4) {\texttt{flatdenim}};
+      \node[swatch, fill=flatpurple]      at (0, 3) {\texttt{flatpurple}};
+      \node[swatch, fill=flatblue]        at (0, 2) {\texttt{flatblue}};
+      \node[swatch, fill=flatgreen]       at (0, 1) {\texttt{flatgreen}};
+      \node[swatch, fill=flatcyan]        at (0, 0) {\texttt{flatcyan}};
+      \node[swatch, fill=flatdarkgrayalt] at (3, 9) {\texttt{flatdarkgrayalt}};
+      \node[swatch, fill=flatgrayalt]     at (3, 8) {\texttt{flatgrayalt}};
+      \node[swatch, fill=flatredalt]      at (3, 7) {\texttt{flatredalt}};
+      \node[swatch, fill=flatorangealt]   at (3, 6) {\texttt{flatorangealt}};
+      \node[swatch, fill=flatyellowalt]   at (3, 5) {\texttt{flatyellowalt}};
+      \node[swatch, fill=flatdenimalt]    at (3, 4) {\texttt{flatdenimalt}};
+      \node[swatch, fill=flatpurplealt]   at (3, 3) {\texttt{flatpurplealt}};
+      \node[swatch, fill=flatbluealt]     at (3, 2) {\texttt{flatbluealt}};
+      \node[swatch, fill=flatgreenalt]    at (3, 1) {\texttt{flatgreenalt}};
+      \node[swatch, fill=flatcyanalt]     at (3, 0) {\texttt{flatcyanalt}};
+    \end{tikzpicture}
+  \end{center}
+}
+
+% New theorem environments.
+\newtheorem{theorem}{Theorem}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{benchmark}{Benchmark}
+\newtheorem{example}{Example}
+\newtheorem{invariant}{Invariant}
+
+% Toggleable TODOs.
+\newtoggle{showtodos}
+\toggletrue{showtodos}
+% \togglefalse{showtodos}
+\newcommand{\TODO}[2][]{%
+  \iftoggle{showtodos}{{\textcolor{blue}{\textbf{TODO(#1): #2}}}}{}%
+}
+
+% Toggleable notes.
+\newtoggle{shownotes}
+\toggletrue{shownotes}
+% \togglefalse{shownotes}
+\newcommand{\NOTE}[2][]{%
+  \iftoggle{shownotes}{{\textcolor{red}{NOTE(#1): #2}}}{}%
+}
+
+% Labels and references. To label a figure use the \figlabel command, to label
+% a lemma, use the \lemlabel command, etc. Similarly, use the \figref, lemref,
+% etc. commands to reference these labels. For example:
+%
+%     \begin{figure}
+%       % ...
+%       \caption{A nice figure}\figlabel{MyNiceFigure}
+%     \end{figure}
+%
+%     Refer to \figref{MyNiceFigure} for a nice figure.
+%
+% Toggle showlabels to show or hide all labels.
+\newtoggle{showlabels}
+% \toggletrue{showlabels}
+\togglefalse{showlabels}
+\newcommand{\genericlabel}[2]{%
+  \label{#1:#2}%
+  \iftoggle{showlabels}{\textcolor{flatdarkgray}{\texttt{[#2]}}}{}%
+}
+\newcommand{\algolabel}[1]{\genericlabel{alg}{#1}}
+\newcommand{\algoref}[1]{Algorithm~\ref{alg:#1}}
+\newcommand{\applabel}[1]{\genericlabel{app}{#1}}
+\newcommand{\appref}[1]{Appendix~\ref{app:#1}}
+\newcommand{\benchlabel}[1]{\genericlabel{bench}{#1}}
+\newcommand{\benchref}[1]{Benchmark~\ref{bench:#1}}
+\newcommand{\clmlabel}[1]{\genericlabel{clm}{#1}}
+\newcommand{\clmref}[1]{Claim~\ref{clm:#1}}
+\newcommand{\eqnlabel}[1]{\genericlabel{eqn}{#1}}
+\newcommand{\eqnref}[1]{\eqref{eqn:#1}}
+\newcommand{\invlabel}[1]{\genericlabel{inv}{#1}}
+\newcommand{\invref}[1]{Invariant~\ref{inv:#1}}
+\newcommand{\examplelabel}[1]{\genericlabel{exa}{#1}}
+\newcommand{\exampleref}[1]{Example~\ref{exa:#1}}
+\newcommand{\figlabel}[1]{\genericlabel{fig}{#1}}
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
+\newcommand{\lemlabel}[1]{\genericlabel{lem}{#1}}
+\newcommand{\lemref}[1]{Lemma~\ref{lem:#1}}
+\newcommand{\linelabel}[1]{\genericlabel{line}{#1}}
+\newcommand{\lineref}[1]{line~\ref{line:#1}}
+\newcommand{\Lineref}[1]{Line~\ref{line:#1}}
+\newcommand{\lstlabel}[1]{\genericlabel{lst}{#1}}
+\newcommand{\lstref}[1]{Listing~\ref{lst:#1}}
+\newcommand{\seclabel}[1]{\genericlabel{sec}{#1}}
+\newcommand{\secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\appendixlabel}[1]{\genericlabel{appendix}{#1}}
+\newcommand{\appendixref}[1]{Appendix~\ref{appendix:#1}}
+\newcommand{\tablabel}[1]{\genericlabel{tab}{#1}}
+\newcommand{\tabref}[1]{Table~\ref{tab:#1}}
+\newcommand{\thmlabel}[1]{\genericlabel{thm}{#1}}
+\newcommand{\thmref}[1]{Theorem~\ref{thm:#1}}
+
+% Surrounding symbols.
+\DeclarePairedDelimiter{\parens}{(}{)}
+\DeclarePairedDelimiter{\set}{\{}{\}}
+\DeclarePairedDelimiterX{\setst}[2]{\{}{\}}{#1 \,\delimsize|\, #2}
+\DeclarePairedDelimiter{\brackets}{[}{]}
+\DeclarePairedDelimiterX{\pfrac}[2]{(}{)}{\frac{#1}{#2}}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+% Symbols and abbreviations.
+\newcommand{\nats}{\mathbb{N}}
+\newcommand{\ints}{\mathbb{Z}}
+\newcommand{\rats}{\mathbb{Q}}
+\newcommand{\reals}{\mathbb{R}}
+\newcommand{\complexes}{\mathbb{C}}
+\newcommand{\partialto}{\rightharpoonup}
+% https://tex.stackexchange.com/a/74132
+\newcommand{\defeq}{\stackrel{\mathclap{\mbox{\normalfont \tiny def}}}{=}}
+
+
+% Misc.
+\newcommand{\defword}[1]{\textbf{\textcolor{flatdenim}{#1}}}
+
+% Tech report environment.
+%
+% If you're writing a paper and there's too much content, you might want to
+% move some content out of the paper and into the technical report version of
+% the paper. To do this, you can put the content in the techreport environment
+% like this:
+%
+%   This text will appear in the paper and tech report.
+%   \begin{techreport}
+%     This text will only appear in the tech report.
+%   \end{techreport}
+%
+% When the techreportenabled toggle is enabled, the tech report content will be
+% shown. When the toggle is disabled, the tech report content will be hidden.
+% Moreover, when the toggle is enabled, the tech report content will be shown
+% with a red bar on its left margin to make it easier for readers to figure out
+% what is new in the tech report.
+\newtoggle{techreportenabled}
+\toggletrue{techreportenabled}
+\togglefalse{techreportenabled}
