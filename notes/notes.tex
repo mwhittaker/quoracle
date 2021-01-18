@@ -2,6 +2,8 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{pervasives}
 
+\newcommand{\dual}[1]{#1^d}
+
 \begin{document}
 \begin{center}
   {\Large Quorum Systems}
@@ -11,17 +13,7 @@
 
 {\input{sections/quorum_systems.tex}}
 {\input{sections/read_write_quorum_systems.tex}}
-{\input{sections/recursive_quorum_systems.tex}}
-
-\TODO[michael]{Prove that for every read-write quorum system, there exists a coterie with at least as good load.}
-\TODO[michael]{Prove that if P dominates Q, then P has equal or lower load.}
-\TODO[michael]{The above shows that the optimal load quorum system is a non-dominated coterie. Maybe this is useful? We can generate every NDC?}
-\TODO[michael]{Understand how domination relates to subsumption.}
-\TODO[michael]{Understand dual-major, dual-minor, and self-dual.}
-\TODO[michael]{Extend these notions to read-write quorums.}
-\TODO[michael]{Enumerate all read-write quorums on four nodes and see the ones we can and can't subsume.}
-\TODO[michael]{Prove that if I have the read quorums R, then the write quorums are bar(R).}
-
+{\input{sections/brainstorm.tex}}
 
 \bibliographystyle{plain}
 \bibliography{references}

@@ -23,7 +23,6 @@ g(\vec{x})$. In other words, $f \leq g$ if $\setst{\vec{x}}{g(\vec{x})}
 \subseteq \setst{\vec{x}}{f(\vec{x})}$. Consider two quorum systems $Q_1$ and
 $Q_2$, $Q_1$ dominates $Q_2$ if and only if $f_{Q_2} < f_{Q_1}$.
 
-\newcommand{\dual}[1]{#1^d}
 Let the dual $\dual{f}$ of $f$ be $\dual{f}(x) = \bar{f}(\bar{x})$. $\dual{f}$
 is the function we get if we swap and with or. Note that $\dual{f}$ corresponds
 to the sets that intersect every set in $f$. We say a monotone function $f$
@@ -68,10 +67,11 @@ higher the throughput it can support.
   which is optimal.
 \end{example}
 
-\cite{naor1998load} prove that if a quorum system dominates another, it has
-lower or equal load. This shows that there always is a non-dominated coterie
-that has the lowest possible load. If we're trying to optimize for load, this
-tells us that we limit ourselves to non-dominated coteries.
+\cite{naor1998load} shows how to use a linear program to compute load.
+\cite{naor1998load} also proves that if a quorum system dominates another, it
+has lower or equal load. This shows that there always is a non-dominated
+coterie that has the lowest possible load. If we're trying to optimize for
+load, this tells us that we limit ourselves to non-dominated coteries.
 
 The \defword{resilience} or \defword{fault tolerance} of a quorum system $Q$ is
 the largest number $f$ such that for every subset $F \subseteq X$ with $|F| =

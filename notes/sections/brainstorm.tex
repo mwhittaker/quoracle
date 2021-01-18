@@ -1,0 +1,61 @@
+\begin{itemize}
+  \item
+    Recursive quorum systems are all non-dominated bicoteries. We can view the
+    tree as a way to generate an arbitrary set of read quorums. Then we just
+    bubble down dual to compute write quorums.
+
+  \item
+    The theory of coteries and decomposition has been very well studied. The
+    one thing that seems a little less studied is the relationship between load
+    and bicoteries. Can we find a nice way to find an optimal load bicoterie?
+    This is probably hard, but maybe something about bicoteries makes this
+    easier than for coteries.
+
+  \item
+    If we wanted to develop a library for bicoteries, we would like to (a)
+    allow people to form arbitrary bicoteries, (b) compute an optimal strategy
+    for a bicotier, (c) efficiently pick quorums based on the strategy, and (d)
+    efficiently determine if something is a superset of a quorum. We can do (a)
+    with a library of dual-able operators like or and and along with some
+    builtins for things like grids. (b) we can use LP with specializations. We
+    might have to do something smart to get ``good' strategies (e.g.,
+    balanced). For (d), we can just evaluate the tree or its dual or maybe use
+    something more efficient like BDDs? For (c) I'm not completely sure. For
+    some quorum systems, the number of quorums is exponential, so we wouldn't
+    want to represent them explicitly. Ideally we could also find an optimal
+    load bicoterie, but that's probably not going to happen. The library can
+    also help compute fault tolerance and maybe load under failure and whatnot.
+    How to compute fault tolerance with duplicates?
+
+  \item
+    Maybe we can run some practical experiments to show how important a good
+    bicoterie is. Maybe we'll find it's not that important.
+
+  \item
+    Is there anything smart about reconfiguring or changing coteries on the
+    fly? For example, grids are not good to go from 6 to 7 nodes. With
+    bicoteries, we probably want to adjust on the fly as the read and write
+    ratios change.
+
+  \item
+    Maybe we can introduce the idea that not all nodes have the same capacity.
+    Some have higher load than others. We could bake that into the nodes like,
+    a = Node("a", cap=1000).
+
+  \item
+    Maybe some nodes are also co-located, so the fault tolerance is a little
+    different. How can we compute fault tolerance with duplicates anyway?
+
+  \item
+    Just for fun, we could probably cross compile to javascript and show how to
+    subsume other quorum systems with our library. We should be able to subsume
+    all if we use duplicates.
+\end{itemize}
+
+\TODO[michael]{Prove that for every read-write quorum system, there exists a coterie with at least as good load.}
+\TODO[michael]{The above shows that the optimal load quorum system is a non-dominated coterie. Maybe this is useful? We can generate every NDC?}
+\TODO[michael]{Understand how domination relates to subsumption.}
+\TODO[michael]{Understand dual-major, dual-minor, and self-dual.}
+\TODO[michael]{Extend these notions to read-write quorums.}
+\TODO[michael]{Enumerate all read-write quorums on four nodes and see the ones we can and can't subsume.}
+\TODO[michael]{Prove that if I have the read quorums R, then the write quorums are bar(R).}
