@@ -1,4 +1,4 @@
-from typing import Iterator, Generic, List, Set, TypeVar
+from typing import Iterator, Generic, List, Optional, Set, TypeVar
 import itertools
 
 
@@ -20,28 +20,6 @@ class Expr(Generic[T]):
 
     def __mul__(self, rhs: 'Expr[T]') -> 'Expr[T]':
         return _and(self, rhs)
-
-
-def _and(lhs: Expr[T], rhs: Expr[T]) -> Expr[T]:
-    if isinstance(lhs, And) and isinstance(rhs, And):
-        return And(lhs.es + rhs.es)
-    elif isinstance(lhs, And):
-        return And(lhs.es + [rhs])
-    elif isinstance(rhs, And):
-        return And([lhs] + rhs.es)
-    else:
-        return And([lhs, rhs])
-
-
-def _or(lhs: Expr[T], rhs: Expr[T]) -> Expr[T]:
-    if isinstance(lhs, Or) and isinstance(rhs, Or):
-        return Or(lhs.es + rhs.es)
-    elif isinstance(lhs, Or):
-        return Or(lhs.es + [rhs])
-    elif isinstance(rhs, Or):
-        return Or([lhs] + rhs.es)
-    else:
-        return Or([lhs, rhs])
 
 
 class Node(Expr[T]):
@@ -112,16 +90,119 @@ class And(Expr[T]):
         return Or([e.dual() for e in self.es])
 
 
+class Choose(Expr[T]):
+    def __init__(self, k: int, es: List[Expr[T]]) -> None:
+        if k <= 0 or k > len(es):
+            raise ValueError(f'k must be in the range [1, {len(es)}]')
+
+        self.k = k
+        self.es = es
+
+    def __str__(self) -> str:
+        return f'choose{self.k}(' + ', '.join(str(e) for e in self.es) + ')'
+
+    def __repr__(self) -> str:
+        return f'Chose({self.k}, {self.es})'
+
+    def quorums(self) -> Iterator[Set[T]]:
+        for combo in itertools.combinations(self.es, self.k):
+            for subquorums in itertools.product(*[e.quorums() for e in combo]):
+                yield set.union(*subquorums)
+
+    def is_quorum(self, xs: Set[T]) -> bool:
+        return sum(1 if e.is_quorum(xs) else 0 for e in self.es) >= self.k
+
+    def dual(self) -> Expr:
+        # TODO(mwhittaker): Prove that this is in fact the dual.
+        return Choose(len(self.es) - self.k + 1, [e.dual() for e in self.es])
+
+
+def _and(lhs: Expr[T], rhs: Expr[T]) -> 'And[T]':
+    if isinstance(lhs, And) and isinstance(rhs, And):
+        return And(lhs.es + rhs.es)
+    elif isinstance(lhs, And):
+        return And(lhs.es + [rhs])
+    elif isinstance(rhs, And):
+        return And([lhs] + rhs.es)
+    else:
+        return And([lhs, rhs])
+
+
+def _or(lhs: Expr[T], rhs: Expr[T]) -> 'Or[T]':
+    if isinstance(lhs, Or) and isinstance(rhs, Or):
+        return Or(lhs.es + rhs.es)
+    elif isinstance(lhs, Or):
+        return Or(lhs.es + [rhs])
+    elif isinstance(rhs, Or):
+        return Or([lhs] + rhs.es)
+    else:
+        return Or([lhs, rhs])
+
+
+def choose(k: int, es: List[Expr[T]]) -> Choose[T]:
+    return Choose(k, es)
+
+
+def majority(es: List[Expr[T]]) -> Choose[T]:
+    return Choose(len(es) // 2 + 1, es)
+
+
 class QuorumSystem:
-    def __init__(self, reads, writes) -> None:
-        pass
+    def __init__(self, reads: Optional[Expr[T]] = None,
+                       writes: Optional[Expr[T]] = None) -> None:
+        if reads is not None and writes is not None:
+            # TODO(mwhittaker): Think of ways to make this more efficient.
+            assert all(len(r & w) > 0
+                       for (r, w) in itertools.product(reads.quorums(),
+                                                       writes.quorums()))
+            self.reads = reads
+            self.writes = writes
+        elif reads is not None and writes is None:
+            self.reads = reads
+            self.writes = reads.dual()
+        elif reads is None and writes is not None:
+            self.reads = writes.dual()
+            self.writes = writes
+        else:
+            raise ValueError('A QuorumSystem must be instantiated with a set '
+                             'of read quorums or a set of write quorums')
+
+    def __repr__(self) -> str:
+        return f'QuorumSystem(reads={self.reads}, writes={self.writes})'
+
+    def read_quorums(self) -> Iterator[Set[T]]:
+        return self.reads.quorums()
+
+    def write_quorums(self) -> Iterator[Set[T]]:
+        return self.writes.quorums()
+
+    def is_read_quorum(self, xs: Set[T]) -> bool:
+        return self.reads.is_quorum(xs)
+
+    def is_write_quorum(self, xs: Set[T]) -> bool:
+        return self.writes.is_quorum(xs)
 
 
 a = Node('a')
 b = Node('b')
 c = Node('c')
+d = Node('d')
+e = Node('e')
+f = Node('g')
+g = Node('g')
+h = Node('h')
+i = Node('i')
+
 disjunction = a + b + c
 conjunction = disjunction * disjunction * disjunction
 print(conjunction)
 print(conjunction.dual())
 print(conjunction.dual().dual())
+print(QuorumSystem(reads=conjunction))
+
+
+# - num_quorums
+# - has dups?
+# - optimal schedule
+# - independent schedule
+# - node read and write throughputs
