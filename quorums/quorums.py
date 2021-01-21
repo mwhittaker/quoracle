@@ -420,16 +420,16 @@ class ExplicitStrategy(Strategy[T]):
         return np.random.choice(self.writes, p=self.write_weights)
 
 
-a = Node('a', write_capacity=200, read_capacity=400)
-b = Node('b', write_capacity=100, read_capacity=200)
-c = Node('c', write_capacity=50, read_capacity=100)
-
-qs = QuorumSystem(reads = a*b + a*c)
-print(list(qs.read_quorums()))
-sigma = qs.strategy(read_fraction=0.5)
-print(list(qs.write_quorums()))
-print(sigma)
-print(1 / sigma.load(read_fraction=0.5))
+# a = Node('a', write_capacity=200, read_capacity=400)
+# b = Node('b', write_capacity=100, read_capacity=200)
+# c = Node('c', write_capacity=50, read_capacity=100)
+#
+# qs = QuorumSystem(reads = a*b + a*c)
+# print(list(qs.read_quorums()))
+# sigma = qs.strategy(read_fraction=0.5)
+# print(list(qs.write_quorums()))
+# print(sigma)
+# print(1 / sigma.load(read_fraction=0.5))
 
 # d = Node('d')
 # e = Node('e')
