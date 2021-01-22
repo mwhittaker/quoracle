@@ -1,4 +1,4 @@
-from quorums.quorums import *
+from quorums import *
 
 a = Node('a')
 b = Node('b')
