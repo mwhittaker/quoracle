@@ -298,6 +298,9 @@ class QuorumSystem(Generic[T]):
     def is_write_quorum(self, xs: Set[T]) -> bool:
         return self.writes.is_quorum(xs)
 
+    def nodes(self) -> Set[Node[T]]:
+        return self.reads.nodes() | self.writes.nodes()
+
     def resilience(self) -> int:
         return min(self.read_resilience(), self.write_resilience())
 
@@ -309,16 +312,50 @@ class QuorumSystem(Generic[T]):
 
     def strategy(self,
                  read_fraction: Optional[Distribution] = None,
-                 write_fraction: Optional[Distribution] = None) \
+                 write_fraction: Optional[Distribution] = None,
+                 f: int = 0) \
                  -> 'Strategy[T]':
-        return self._load_optimal_strategy(
-            _canonicalize_rw_distribution(read_fraction, write_fraction))
+        if f < 0:
+            raise ValueError('f must be >= 0')
+
+        d = _canonicalize_rw_distribution(read_fraction, write_fraction)
+        if f == 0:
+            return self._load_optimal_strategy(
+                list(self.read_quorums()),
+                list(self.write_quorums()),
+                d)
+        else:
+            xs = [node.x for node in self.nodes()]
+            return self._load_optimal_strategy(
+                list(self._f_resilient_quorums(f, xs, self.reads)),
+                list(self._f_resilient_quorums(f, xs, self.writes)),
+                d)
+
+    def _f_resilient_quorums(self,
+                             f: int,
+                             xs: List[T],
+                             e: Expr) -> Iterator[Set[T]]:
+        assert f >= 1
+
+        def helper(s: Set[T], i: int) -> Iterator[Set[T]]:
+            if all(e.is_quorum(s - set(failure))
+                   for failure in itertools.combinations(s, min(f, len(s)))):
+                yield set(s)
+                return
+
+            for j in range(i, len(xs)):
+                s.add(xs[j])
+                yield from helper(s, j + 1)
+                s.remove(xs[j])
+
+        return helper(set(), 0)
 
     def load(self,
              read_fraction: Optional[Distribution] = None,
-             write_fraction: Optional[Distribution] = None) \
+             write_fraction: Optional[Distribution] = None,
+             f: int = 0) \
              -> float:
-        sigma = self.strategy(read_fraction, write_fraction)
+        sigma = self.strategy(read_fraction, write_fraction, f)
         return sigma.load(read_fraction, write_fraction)
 
     def _min_hitting_set(self, sets: Iterator[Set[T]]) -> int:
@@ -338,13 +375,12 @@ class QuorumSystem(Generic[T]):
         return int(sum(v.varValue for v in x_vars.values()))
 
     def _load_optimal_strategy(self,
-                               read_fraction: Dict[float, float]) -> \
-                               'Strategy[T]':
+                               read_quorums: List[Set[T]],
+                               write_quorums: List[Set[T]],
+                               read_fraction: Dict[float, float]) \
+                               -> 'Strategy[T]':
         # TODO(mwhittaker): Explain f_r calculation.
         fr = sum(f * weight for (f, weight) in read_fraction.items())
-
-        read_quorums = list(self.read_quorums())
-        write_quorums = list(self.write_quorums())
 
         nodes = self.reads.nodes() | self.writes.nodes()
         read_capacity = {node.x: node.read_capacity for node in nodes}
@@ -488,9 +524,26 @@ class ExplicitStrategy(Strategy[T]):
 
 
 
-# a = Node('a')
-# b = Node('b')
-# c = Node('c')
+a = Node('a')
+b = Node('b')
+c = Node('c')
+d = Node('d')
+e = Node('e')
+f = Node('f')
+g = Node('g')
+h = Node('h')
+i = Node('i')
+
+walls = QuorumSystem(reads=a*b + c*d*e)
+paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
+maj = QuorumSystem(reads=majority([a, b, c, d, e]))
+
+for qs in [walls, paths, maj]:
+    sigma_0 = qs.strategy(read_fraction=0.5)
+    sigma_1 = qs.strategy(read_fraction=0.5, f=1)
+    print(sigma_0.load(read_fraction=0.5), sigma_1.load(read_fraction=0.5))
+    print(sigma_1)
+
 #
 # qs = QuorumSystem(reads = a*b + a*c)
 # print(list(qs.read_quorums()))
@@ -498,18 +551,6 @@ class ExplicitStrategy(Strategy[T]):
 # print(list(qs.write_quorums()))
 # print(sigma)
 # print(1 / sigma.load(read_fraction=0.5))
-
-# d = Node('d')
-# e = Node('e')
-# f = Node('f')
-# g = Node('g')
-# h = Node('h')
-# i = Node('i')
-# grid = QuorumSystem(reads=a*b*c + d*e*f + g*h*i)
-# print(grid.resilience())
-# sigma = grid.strategy(0.1)
-# print(grid)
-# print(sigma)
 
 # paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
 # print(paths.resilience())
