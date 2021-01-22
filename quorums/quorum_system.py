@@ -18,10 +18,12 @@ class QuorumSystem(Generic[T]):
     def __init__(self, reads: Optional[Expr[T]] = None,
                        writes: Optional[Expr[T]] = None) -> None:
         if reads is not None and writes is not None:
-            # TODO(mwhittaker): Think of ways to make this more efficient.
-            assert all(len(r & w) > 0
-                       for (r, w) in itertools.product(reads.quorums(),
-                                                       writes.quorums()))
+            optimal_writes = reads.dual()
+            if not all(optimal_writes.is_quorum(write_quorum)
+                       for write_quorum in writes.quorums()):
+                raise ValueError(
+                    'Not all read quorums intersect all write quorums')
+
             self.reads = reads
             self.writes = writes
         elif reads is not None and writes is None:
