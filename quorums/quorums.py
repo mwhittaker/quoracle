@@ -12,6 +12,23 @@ import pulp
 T = TypeVar('T')
 
 
+def _min_hitting_set(sets: Iterator[Set[T]]) -> int:
+    x_vars: Dict[T, pulp.LpVariable] = dict()
+    next_id = itertools.count()
+
+    problem = pulp.LpProblem("min_hitting_set", pulp.LpMinimize)
+    for (i, xs) in enumerate(sets):
+        for x in xs:
+            if x not in x_vars:
+                id = next(next_id)
+                x_vars[x] = pulp.LpVariable(f'x{id}', cat=pulp.LpBinary)
+        problem += sum(x_vars[x] for x in xs) >= 1
+
+    problem += sum(x_vars.values())
+    problem.solve(pulp.apis.PULP_CBC_CMD(msg=False))
+    return int(sum(v.varValue for v in x_vars.values()))
+
+
 class Expr(Generic[T]):
     def __add__(self, rhs: 'Expr[T]') -> 'Expr[T]':
         return _or(self, rhs)
@@ -31,7 +48,22 @@ class Expr(Generic[T]):
     def nodes(self) -> Set['Node[T]']:
         raise NotImplementedError
 
+    def resilience(self) -> int:
+        if self.dup_free():
+            return self._dup_free_min_failures() - 1
+        else:
+            return _min_hitting_set(self.quorums()) - 1
+
     def dual(self) -> 'Expr[T]':
+        raise NotImplementedError
+
+    def dup_free(self) -> bool:
+        return len(self.nodes()) == self._num_leaves()
+
+    def _num_leaves(self) -> int:
+        raise NotImplementedError
+
+    def _dup_free_min_failures(self) -> int:
         raise NotImplementedError
 
 
@@ -82,6 +114,12 @@ class Node(Expr[T]):
     def dual(self) -> Expr:
         return self
 
+    def _num_leaves(self) -> int:
+        return 1
+
+    def _dup_free_min_failures(self) -> int:
+        return 1
+
 
 class Or(Expr[T]):
     def __init__(self, es: List[Expr[T]]) -> None:
@@ -108,6 +146,12 @@ class Or(Expr[T]):
 
     def dual(self) -> Expr:
         return And([e.dual() for e in self.es])
+
+    def _num_leaves(self) -> int:
+        return sum(e._num_leaves() for e in self.es)
+
+    def _dup_free_min_failures(self) -> int:
+        return sum(e._dup_free_min_failures() for e in self.es)
 
 
 class And(Expr[T]):
@@ -136,6 +180,11 @@ class And(Expr[T]):
     def dual(self) -> Expr:
         return Or([e.dual() for e in self.es])
 
+    def _num_leaves(self) -> int:
+        return sum(e._num_leaves() for e in self.es)
+
+    def _dup_free_min_failures(self) -> int:
+        return min(e._dup_free_min_failures() for e in self.es)
 
 class Choose(Expr[T]):
     def __init__(self, k: int, es: List[Expr[T]]) -> None:
@@ -165,6 +214,12 @@ class Choose(Expr[T]):
     def dual(self) -> Expr:
         # TODO(mwhittaker): Prove that this is in fact the dual.
         return Choose(len(self.es) - self.k + 1, [e.dual() for e in self.es])
+
+    def _num_leaves(self) -> int:
+        return sum(e._num_leaves() for e in self.es)
+
+    def _dup_free_min_failures(self) -> int:
+        return sum(sorted(e._dup_free_min_failures() for e in self.es)[:self.k])
 
 
 def _and(lhs: Expr[T], rhs: Expr[T]) -> 'And[T]':
@@ -305,10 +360,10 @@ class QuorumSystem(Generic[T]):
         return min(self.read_resilience(), self.write_resilience())
 
     def read_resilience(self) -> int:
-        return self._min_hitting_set(self.read_quorums()) - 1
+        return self.reads.resilience()
 
     def write_resilience(self) -> int:
-        return self._min_hitting_set(self.write_quorums()) - 1
+        return self.writes.resilience()
 
     def strategy(self,
                  read_fraction: Optional[Distribution] = None,
@@ -333,6 +388,9 @@ class QuorumSystem(Generic[T]):
             if len(write_quorums) == 0:
                 raise ValueError(f'There are no {f}-resilient write quorums')
             return self._load_optimal_strategy(read_quorums, write_quorums, d)
+
+    def dup_free(self) -> bool:
+        return self.reads.dup_free() and self.writes.dup_free()
 
     def _f_resilient_quorums(self,
                              f: int,
@@ -360,22 +418,6 @@ class QuorumSystem(Generic[T]):
              -> float:
         sigma = self.strategy(read_fraction, write_fraction, f)
         return sigma.load(read_fraction, write_fraction)
-
-    def _min_hitting_set(self, sets: Iterator[Set[T]]) -> int:
-        x_vars: Dict[T, pulp.LpVariable] = dict()
-        next_id = itertools.count()
-
-        problem = pulp.LpProblem("min_hitting_set", pulp.LpMinimize)
-        for (i, xs) in enumerate(sets):
-            for x in xs:
-                if x not in x_vars:
-                    id = next(next_id)
-                    x_vars[x] = pulp.LpVariable(f'x{id}', cat=pulp.LpBinary)
-            problem += sum(x_vars[x] for x in xs) >= 1
-
-        problem += sum(x_vars.values())
-        problem.solve(pulp.apis.PULP_CBC_CMD(msg=False))
-        return int(sum(v.varValue for v in x_vars.values()))
 
     def _load_optimal_strategy(self,
                                read_quorums: List[Set[T]],
@@ -428,17 +470,12 @@ class QuorumSystem(Generic[T]):
                             write_capacity[x])
             problem += (x_load <= l, x)
 
-        # print(problem)
         problem.solve(pulp.apis.PULP_CBC_CMD(msg=False))
         return ExplicitStrategy(nodes,
                                 read_quorums,
                                 [v.varValue for v in read_quorum_vars],
                                 write_quorums,
                                 [v.varValue for v in write_quorum_vars])
-        # for v in read_weights + write_weights:
-        #     print(f'{v.name} = {v.varValue}')
-        # return l.varValue
-
 
 
 class Strategy(Generic[T]):
@@ -536,16 +573,19 @@ class ExplicitStrategy(Strategy[T]):
 # g = Node('g')
 # h = Node('h')
 # i = Node('i')
-
+#
 # walls = QuorumSystem(reads=a*b + c*d*e)
 # paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
 # maj = QuorumSystem(reads=majority([a, b, c, d, e]))
 #
 # for qs in [walls, paths, maj]:
-#     sigma_0 = qs.strategy(read_fraction=0.5)
-#     sigma_1 = qs.strategy(read_fraction=0.5, f=1)
-#     print(sigma_0.load(read_fraction=0.5), sigma_1.load(read_fraction=0.5))
-#     print(sigma_1)
+#     print(qs.dup_free())
+#     print(qs.resilience())
+
+    # sigma_0 = qs.strategy(read_fraction=0.5)
+    # sigma_1 = qs.strategy(read_fraction=0.5, f=1)
+    # print(sigma_0.load(read_fraction=0.5), sigma_1.load(read_fraction=0.5))
+    # print(sigma_1)
 
 
 #
