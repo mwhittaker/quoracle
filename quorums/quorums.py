@@ -13,6 +13,8 @@ T = TypeVar('T')
 
 
 class Expr(Generic[T]):
+    # TODO(mwhittaker): This should probably be hidden. But, we might want a
+    # public version that is {node.x for node in nodes()}.
     def nodes(self) -> Set['Node[T]']:
         raise NotImplementedError
 
@@ -261,20 +263,48 @@ class QuorumSystem(Generic[T]):
     def __repr__(self) -> str:
         return f'QuorumSystem(reads={self.reads}, writes={self.writes})'
 
+    def read_quorums(self) -> Iterator[Set[T]]:
+        return self.reads.quorums()
+
+    def write_quorums(self) -> Iterator[Set[T]]:
+        return self.writes.quorums()
+
+    def is_read_quorum(self, xs: Set[T]) -> bool:
+        return self.reads.is_quorum(xs)
+
+    def is_write_quorum(self, xs: Set[T]) -> bool:
+        return self.writes.is_quorum(xs)
+
+    def resilience(self) -> int:
+        return min(self.read_resilience(), self.write_resilience())
+
+    def read_resilience(self) -> int:
+        return self._min_hitting_set(self.read_quorums()) - 1
+
+    def write_resilience(self) -> int:
+        return self._min_hitting_set(self.write_quorums()) - 1
+
     def strategy(self, read_fraction: Distribution) -> 'Strategy[T]':
         # TODO(mwhittaker): Allow read_fraction or write_fraction.
         # TODO(mwhittaker): Implement independent strategy.
         return self._load_optimal_strategy(
                     _canonicalize_distribution(read_fraction))
 
-    def is_read_quorum(self, xs: Set[T]) -> bool:
-        return self.reads.is_quorum(xs)
+    def _min_hitting_set(self, sets: Iterator[Set[T]]) -> int:
+        x_vars: Dict[T, pulp.LpVariable] = dict()
+        next_id = itertools.count()
 
-    def read_quorums(self) -> Iterator[Set[T]]:
-        return self.reads.quorums()
+        problem = pulp.LpProblem("min_hitting_set", pulp.LpMinimize)
+        for (i, xs) in enumerate(sets):
+            for x in xs:
+                if x not in x_vars:
+                    id = next(next_id)
+                    x_vars[x] = pulp.LpVariable(f'x{id}', cat=pulp.LpBinary)
+            problem += sum(x_vars[x] for x in xs) >= 1
 
-    def write_quorums(self) -> Iterator[Set[T]]:
-        return self.writes.quorums()
+        problem += sum(x_vars.values())
+        problem.solve(pulp.apis.PULP_CBC_CMD(msg=False))
+        return int(sum(v.varValue for v in x_vars.values()))
 
     def _load_optimal_strategy(self,
                                read_fraction: Dict[float, float]) -> \
@@ -338,6 +368,7 @@ class QuorumSystem(Generic[T]):
         # for v in read_weights + write_weights:
         #     print(f'{v.name} = {v.varValue}')
         # return l.varValue
+
 
 
 class Strategy(Generic[T]):
@@ -420,9 +451,11 @@ class ExplicitStrategy(Strategy[T]):
         return np.random.choice(self.writes, p=self.write_weights)
 
 
-# a = Node('a', write_capacity=200, read_capacity=400)
-# b = Node('b', write_capacity=100, read_capacity=200)
-# c = Node('c', write_capacity=50, read_capacity=100)
+
+
+# a = Node('a')
+# b = Node('b')
+# c = Node('c')
 #
 # qs = QuorumSystem(reads = a*b + a*c)
 # print(list(qs.read_quorums()))
@@ -438,9 +471,20 @@ class ExplicitStrategy(Strategy[T]):
 # h = Node('h')
 # i = Node('i')
 # grid = QuorumSystem(reads=a*b*c + d*e*f + g*h*i)
+# print(grid.resilience())
 # sigma = grid.strategy(0.1)
 # print(grid)
 # print(sigma)
+
+# paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
+# print(paths.resilience())
+# sigma = paths.strategy(read_fraction=0.5)
+# print(sigma.load(read_fraction=0.5))
+#
+# walls = QuorumSystem(reads=a*b + c*d*e)
+# print(walls.resilience())
+# sigma = walls.strategy(read_fraction=0.5)
+# print(sigma.load(read_fraction=0.5))
 
 
 
