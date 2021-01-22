@@ -326,10 +326,13 @@ class QuorumSystem(Generic[T]):
                 d)
         else:
             xs = [node.x for node in self.nodes()]
-            return self._load_optimal_strategy(
-                list(self._f_resilient_quorums(f, xs, self.reads)),
-                list(self._f_resilient_quorums(f, xs, self.writes)),
-                d)
+            read_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
+            write_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
+            if len(read_quorums) == 0:
+                raise ValueError(f'There are no {f}-resilient read quorums')
+            if len(write_quorums) == 0:
+                raise ValueError(f'There are no {f}-resilient write quorums')
+            return self._load_optimal_strategy(read_quorums, write_quorums, d)
 
     def _f_resilient_quorums(self,
                              f: int,
@@ -524,25 +527,26 @@ class ExplicitStrategy(Strategy[T]):
 
 
 
-a = Node('a')
-b = Node('b')
-c = Node('c')
-d = Node('d')
-e = Node('e')
-f = Node('f')
-g = Node('g')
-h = Node('h')
-i = Node('i')
+# a = Node('a')
+# b = Node('b')
+# c = Node('c')
+# d = Node('d')
+# e = Node('e')
+# f = Node('f')
+# g = Node('g')
+# h = Node('h')
+# i = Node('i')
 
-walls = QuorumSystem(reads=a*b + c*d*e)
-paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
-maj = QuorumSystem(reads=majority([a, b, c, d, e]))
+# walls = QuorumSystem(reads=a*b + c*d*e)
+# paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
+# maj = QuorumSystem(reads=majority([a, b, c, d, e]))
+#
+# for qs in [walls, paths, maj]:
+#     sigma_0 = qs.strategy(read_fraction=0.5)
+#     sigma_1 = qs.strategy(read_fraction=0.5, f=1)
+#     print(sigma_0.load(read_fraction=0.5), sigma_1.load(read_fraction=0.5))
+#     print(sigma_1)
 
-for qs in [walls, paths, maj]:
-    sigma_0 = qs.strategy(read_fraction=0.5)
-    sigma_1 = qs.strategy(read_fraction=0.5, f=1)
-    print(sigma_0.load(read_fraction=0.5), sigma_1.load(read_fraction=0.5))
-    print(sigma_1)
 
 #
 # qs = QuorumSystem(reads = a*b + a*c)
