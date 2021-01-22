@@ -13,10 +13,11 @@ T = TypeVar('T')
 
 
 class Expr(Generic[T]):
-    # TODO(mwhittaker): This should probably be hidden. But, we might want a
-    # public version that is {node.x for node in nodes()}.
-    def nodes(self) -> Set['Node[T]']:
-        raise NotImplementedError
+    def __add__(self, rhs: 'Expr[T]') -> 'Expr[T]':
+        return _or(self, rhs)
+
+    def __mul__(self, rhs: 'Expr[T]') -> 'Expr[T]':
+        return _and(self, rhs)
 
     def quorums(self) -> Iterator[Set[T]]:
         raise NotImplementedError
@@ -24,14 +25,14 @@ class Expr(Generic[T]):
     def is_quorum(self, xs: Set[T]) -> bool:
         raise NotImplementedError
 
-    def dual(self) -> 'Expr[T]':
+    def elements(self) -> Set[T]:
+        return {node.x for node in self.nodes()}
+
+    def nodes(self) -> Set['Node[T]']:
         raise NotImplementedError
 
-    def __add__(self, rhs: 'Expr[T]') -> 'Expr[T]':
-        return _or(self, rhs)
-
-    def __mul__(self, rhs: 'Expr[T]') -> 'Expr[T]':
-        return _and(self, rhs)
+    def dual(self) -> 'Expr[T]':
+        raise NotImplementedError
 
 
 class Node(Expr[T]):
@@ -69,23 +70,17 @@ class Node(Expr[T]):
     def __repr__(self) -> str:
         return f'Node({self.x})'
 
-    def nodes(self) -> Set['Node[T]']:
-        return {self}
-
     def quorums(self) -> Iterator[Set[T]]:
         yield {self.x}
 
     def is_quorum(self, xs: Set[T]) -> bool:
         return self.x in xs
 
+    def nodes(self) -> Set['Node[T]']:
+        return {self}
+
     def dual(self) -> Expr:
         return self
-
-    def _read_capacities(self) -> Dict[T, float]:
-        return {self.x: self.read_capacity}
-
-    def _write_capacities(self) -> Dict[T, float]:
-        return {self.x: self.write_capacity}
 
 
 class Or(Expr[T]):
@@ -101,15 +96,15 @@ class Or(Expr[T]):
     def __repr__(self) -> str:
         return f'Or({self.es})'
 
-    def nodes(self) -> Set[Node[T]]:
-        return set.union(*[e.nodes() for e in self.es])
-
     def quorums(self) -> Iterator[Set[T]]:
         for e in self.es:
             yield from e.quorums()
 
     def is_quorum(self, xs: Set[T]) -> bool:
         return any(e.is_quorum(xs) for e in self.es)
+
+    def nodes(self) -> Set[Node[T]]:
+        return set.union(*[e.nodes() for e in self.es])
 
     def dual(self) -> Expr:
         return And([e.dual() for e in self.es])
@@ -128,15 +123,15 @@ class And(Expr[T]):
     def __repr__(self) -> str:
         return f'And({self.es})'
 
-    def nodes(self) -> Set[Node[T]]:
-        return set.union(*[e.nodes() for e in self.es])
-
     def quorums(self) -> Iterator[Set[T]]:
         for subquorums in itertools.product(*[e.quorums() for e in self.es]):
             yield set.union(*subquorums)
 
     def is_quorum(self, xs: Set[T]) -> bool:
         return all(e.is_quorum(xs) for e in self.es)
+
+    def nodes(self) -> Set[Node[T]]:
+        return set.union(*[e.nodes() for e in self.es])
 
     def dual(self) -> Expr:
         return Or([e.dual() for e in self.es])
@@ -156,9 +151,6 @@ class Choose(Expr[T]):
     def __repr__(self) -> str:
         return f'Chose({self.k}, {self.es})'
 
-    def nodes(self) -> Set[Node[T]]:
-        return set.union(*[e.nodes() for e in self.es])
-
     def quorums(self) -> Iterator[Set[T]]:
         for combo in itertools.combinations(self.es, self.k):
             for subquorums in itertools.product(*[e.quorums() for e in combo]):
@@ -166,6 +158,9 @@ class Choose(Expr[T]):
 
     def is_quorum(self, xs: Set[T]) -> bool:
         return sum(1 if e.is_quorum(xs) else 0 for e in self.es) >= self.k
+
+    def nodes(self) -> Set[Node[T]]:
+        return set.union(*[e.nodes() for e in self.es])
 
     def dual(self) -> Expr:
         # TODO(mwhittaker): Prove that this is in fact the dual.
@@ -207,10 +202,23 @@ def majority(es: List[Expr[T]]) -> Expr[T]:
     return choose(len(es) // 2 + 1, es)
 
 
-Distribution = Union[int, float, Dict[float, float], List[Tuple[float, float]]]
+ReadFraction = float
+ReadWriteFraction = float
+Weight = float
+Probability = float
+Distribution = Union[
+    # For example, 1 means 100% reads.
+    int,
+    # For example, 0.25 means 25% reads.
+    float,
+    # For example, {0.25: 1, 0.8: 2} means 25% reads one third of the time and
+    # 80% reads two thirds of the time.
+    Dict[ReadWriteFraction, Weight],
+]
 
 
-def _canonicalize_distribution(d: Distribution) -> Dict[float, float]:
+def _canonicalize_distribution(d: Distribution) \
+        -> Dict[ReadWriteFraction, Probability]:
     if isinstance(d, int):
         if d < 0 or d > 1:
             raise ValueError('distribution must be in the range [0, 1]')
@@ -233,11 +241,26 @@ def _canonicalize_distribution(d: Distribution) -> Dict[float, float]:
         return {float(f): weight / total_weight
                 for (f, weight) in d.items()
                 if weight > 0}
-    elif isinstance(d, list):
-        return _canonicalize_distribution({f: weight for (f, weight) in d})
     else:
         raise ValueError('distribution must be an int, a float, a Dict[float, '
                          'float] or a List[Tuple[float, float]]')
+
+
+def _canonicalize_rw_distribution(read_fraction: Optional[Distribution],
+                                  write_fraction: Optional[Distribution]) \
+                                  -> Dict[ReadFraction, Probability]:
+    if read_fraction is None and write_fraction is None:
+        raise ValueError('Either read_fraction or write_fraction must be given')
+    elif read_fraction is not None and write_fraction is not None:
+        raise ValueError('Only one of read_fraction or write_fraction can be '
+                         'given')
+    elif read_fraction is not None:
+        return _canonicalize_distribution(read_fraction)
+    else:
+        assert write_fraction is not None
+        return {1 - f: weight
+                for (f, weight) in
+                _canonicalize_distribution(write_fraction).items()}
 
 
 class QuorumSystem(Generic[T]):
@@ -284,11 +307,19 @@ class QuorumSystem(Generic[T]):
     def write_resilience(self) -> int:
         return self._min_hitting_set(self.write_quorums()) - 1
 
-    def strategy(self, read_fraction: Distribution) -> 'Strategy[T]':
-        # TODO(mwhittaker): Allow read_fraction or write_fraction.
-        # TODO(mwhittaker): Implement independent strategy.
+    def strategy(self,
+                 read_fraction: Optional[Distribution] = None,
+                 write_fraction: Optional[Distribution] = None) \
+                 -> 'Strategy[T]':
         return self._load_optimal_strategy(
-                    _canonicalize_distribution(read_fraction))
+            _canonicalize_rw_distribution(read_fraction, write_fraction))
+
+    def load(self,
+             read_fraction: Optional[Distribution] = None,
+             write_fraction: Optional[Distribution] = None) \
+             -> float:
+        sigma = self.strategy(read_fraction, write_fraction)
+        return sigma.load(read_fraction, write_fraction)
 
     def _min_hitting_set(self, sets: Iterator[Set[T]]) -> int:
         x_vars: Dict[T, pulp.LpVariable] = dict()
@@ -372,7 +403,10 @@ class QuorumSystem(Generic[T]):
 
 
 class Strategy(Generic[T]):
-    def load(self, read_fraction: Distribution) -> float:
+    def load(self,
+             read_fraction: Optional[Distribution] = None,
+             write_fraction: Optional[Distribution] = None) \
+             -> float:
         raise NotImplementedError
 
     def get_read_quorum(self) -> Set[T]:
@@ -414,10 +448,11 @@ class ExplicitStrategy(Strategy[T]):
                                  f'writes={self.writes}, ' +
                                  f'write_weights={self.write_weights})')
 
-    # TODO(mwhittaker): Implement __str__ and __repr__.
-
-    def load(self, read_fraction: Distribution) -> float:
-        d = _canonicalize_distribution(read_fraction)
+    def load(self,
+             read_fraction: Optional[Distribution] = None,
+             write_fraction: Optional[Distribution] = None) \
+             -> float:
+        d = _canonicalize_rw_distribution(read_fraction, write_fraction)
         fr = sum(f * weight for (f, weight) in d.items())
 
         read_load: Dict[T, float] = collections.defaultdict(float)
