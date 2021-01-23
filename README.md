@@ -154,7 +154,7 @@ prefer.
 
 ```python
 strategy = grid.strategy(write_fraction=0.75)
-strategy.load(write_fraction=distribution)
+strategy.load(write_fraction=distribution) # 0.429
 ```
 
 In the real world, not all nodes are equal. We often run distributed systems on
