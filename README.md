@@ -215,7 +215,7 @@ by contacting more than the bare minimum number of nodes.
 
 Formally, we say a read quorum (or write quorum) q is _f-resilient_ if despite
 the failure of any f nodes, q still forms a read quorum (or write quorum). A
-strategy is f-resilient if it only selects f-resilient quorums. By default, we
+strategy is f-resilient if it only selects f-resilient quorums. By default,
 `strategy` returns 0-resilient quorums. We can pass in the `f` argument to get
 more resilient strategies.
 
@@ -263,7 +263,7 @@ crumbling_walls.capacity(read_fraction=distribution) # 6824
 paths.capacity(read_fraction=distribution)           # 5725
 ```
 
-Maybe some time later, we've experience high latency because of stragglers and
+Maybe some time later, we experiencing high latency because of stragglers and
 want to switch to a 1-resilient strategy. We again compute the loads, but now
 see that the simple majority quorum system has the highest load, so we switch
 from the crumbling walls quorum system to the simple majority quorum system.
