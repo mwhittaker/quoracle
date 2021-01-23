@@ -117,6 +117,13 @@ class QuorumSystem(Generic[T]):
         sigma = self.strategy(read_fraction, write_fraction, f)
         return sigma.load(read_fraction, write_fraction)
 
+    def capacity(self,
+                 read_fraction: Optional[Distribution] = None,
+                 write_fraction: Optional[Distribution] = None,
+                 f: int = 0) \
+                 -> float:
+        return 1 / self.load(read_fraction, write_fraction, f)
+
     def _load_optimal_strategy(self,
                                read_quorums: List[Set[T]],
                                write_quorums: List[Set[T]],

@@ -16,6 +16,12 @@ class Strategy(Generic[T]):
              -> float:
         raise NotImplementedError
 
+    def capacity(self,
+                 read_fraction: Optional[Distribution] = None,
+                 write_fraction: Optional[Distribution] = None) \
+                 -> float:
+        return 1 / self.load(read_fraction, write_fraction)
+
     def get_read_quorum(self) -> Set[T]:
         raise NotImplementedError
 
