@@ -186,7 +186,7 @@ strategy.capacity(read_fraction=0.75) # 1333
 
 Nodes might also process reads and writes at different speeds. We can specify
 the peak read and write throughput of every node separately. Here, we assume
-reads are ten times as fast as reads.
+reads are ten times as fast as writes.
 
 ```python
 a = Node('a', write_capacity=1000, read_capacity=10000)
