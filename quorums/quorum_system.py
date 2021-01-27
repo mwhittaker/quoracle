@@ -129,17 +129,82 @@ class QuorumSystem(Generic[T]):
                                write_quorums: List[Set[T]],
                                read_fraction: Dict[float, float]) \
                                -> 'Strategy[T]':
-        # TODO(mwhittaker): Explain f_r calculation.
-        fr = sum(f * weight for (f, weight) in read_fraction.items())
+        """
+        Consider the following 2x2 grid quorum system.
 
+            a   b
+
+            c   d
+
+        with
+
+            read_quorums = [{a, b}, {c, d}]
+            write_quorums = [{a, c}, {a, d}, {b, c}, {b, d}]
+
+        We can form a linear program to compute the optimal load of this quorum
+        system for some fixed read fraction fr as follows. First, we create a
+        variable ri for every read quorum i and a variable wi for every write
+        quorum i. ri represents the probabilty of selecting the ith read
+        quorum, and wi represents the probabilty of selecting the ith write
+        quorum. We introduce an additional variable l that represents the load
+        and solve the following linear program.
+
+            min L subject to
+            r0 + r1 + r2 = 1
+            w0 + w1 = 1
+            fr (r0) + (1 - fr) (w0 + w1) <= L # a's load
+            fr (r0) + (1 - fr) (w2 + w3) <= L # b's load
+            fr (r1) + (1 - fr) (w0 + w2) <= L # c's load
+            fr (r1) + (1 - fr) (w1 + w3) <= L # d's load
+
+        If we assume every element x has read capacity rcap_x and write
+        capacity wcap_x, then we adjust the linear program like this.
+
+            min L subject to
+            r0 + r1 + r2 = 1
+            w0 + w1 = 1
+            fr/rcap_a (r0) + (1 - fr)/wcap_a (w0 + w1) <= L # a's load
+            fr/rcap_b (r0) + (1 - fr)/wcap_b (w2 + w3) <= L # b's load
+            fr/rcap_c (r1) + (1 - fr)/wcap_c (w0 + w2) <= L # c's load
+            fr/rcap_d (r1) + (1 - fr)/wcap_d (w1 + w3) <= L # d's load
+
+        Assume we have fr = 0.9 with 80% probabilty and fr = 0.5 with 20%. Then
+        we adjust the linear program as follows to find the strategy that
+        minimzes the average load.
+
+            min 0.8 * L_0.9 + 0.2 * L_0.5 subject to
+            r0 + r1 + r2 = 1
+            w0 + w1 = 1
+            0.9/rcap_a (r0) + 0.1/wcap_a (w0 + w1) <= L_0.9 # a's load
+            0.9/rcap_b (r0) + 0.1/wcap_b (w2 + w3) <= L_0.9 # b's load
+            0.9/rcap_c (r1) + 0.1/wcap_c (w0 + w2) <= L_0.9 # c's load
+            0.9/rcap_d (r1) + 0.1/wcap_d (w1 + w3) <= L_0.9 # d's load
+            0.5/rcap_a (r0) + 0.5/wcap_a (w0 + w1) <= L_0.5 # a's load
+            0.5/rcap_b (r0) + 0.5/wcap_b (w2 + w3) <= L_0.5 # b's load
+            0.5/rcap_c (r1) + 0.5/wcap_c (w0 + w2) <= L_0.5 # c's load
+            0.5/rcap_d (r1) + 0.5/wcap_d (w1 + w3) <= L_0.5 # d's load
+        """
         nodes = self.reads.nodes() | self.writes.nodes()
         read_capacity = {node.x: node.read_capacity for node in nodes}
         write_capacity = {node.x: node.write_capacity for node in nodes}
 
+        # Create a variable for every read quorum and every write quorum. While
+        # we do this, map each element x to the read and write quorums that
+        # it's in. For example, image we have the following read and write
+        # quorums:
+        #
+        #     read_quorums = [{a}, {a, b}, {a, c}]
+        #     write_quorums = [{a, b}, {a, b, c}]
+        #
+        # Then, we'd have
+        #
+        #     read_quorum_vars = [r0, r1, 2]
+        #     write_quorum_vars = [w0, w1]
+        #     x_to_read_quorum_vars = {a: [r1, r2, r3], b: [r1], c: [r2]}
+        #     x_to_write_quorum_vars = {a: [w1, w2], b: [w2, w2], c: [w2]}
         read_quorum_vars: List[pulp.LpVariable] = []
         x_to_read_quorum_vars: Dict[T, List[pulp.LpVariable]] = \
             collections.defaultdict(list)
-
         for (i, read_quorum) in enumerate(read_quorums):
             v = pulp.LpVariable(f'r{i}', 0, 1)
             read_quorum_vars.append(v)
@@ -155,26 +220,36 @@ class QuorumSystem(Generic[T]):
             for x in write_quorum:
                 x_to_write_quorum_vars[x].append(v)
 
+        # Create a variable for every load.
+        load_vars = {fr: pulp.LpVariable(f'l_{fr}', 0, 1)
+                     for fr in read_fraction.keys()}
+
         # Form the linear program to find the load.
         problem = pulp.LpProblem("load", pulp.LpMinimize)
 
-        # If we're trying to balance the strategy, then we want to minimize the
-        # pairwise absolute differences between the read probabilities and the
-        # write probabilities.
-        l = pulp.LpVariable('l', 0, 1)
-        problem += l
+        # First, we add our objective.
+        problem += sum(weight * load_vars[fr]
+                       for (fr, weight) in read_fraction.items())
+
+        # Next, we make sure that the probabilities we select form valid
+        # probabilty distributions.
         problem += (sum(read_quorum_vars) == 1, 'valid read strategy')
         problem += (sum(write_quorum_vars) == 1, 'valid write strategy')
-        for node in nodes:
-            x = node.x
-            x_load: pulp.LpAffineExpression = 0
-            if x in x_to_read_quorum_vars:
-                x_load += fr * sum(x_to_read_quorum_vars[x]) / read_capacity[x]
-            if x in x_to_write_quorum_vars:
-                x_load += ((1 - fr) * sum(x_to_write_quorum_vars[x]) /
-                            write_capacity[x])
-            problem += (x_load <= l, x)
 
+        # Finally, we add constraints for every value of fr.
+        for fr, weight in read_fraction.items():
+            for node in nodes:
+                x = node.x
+                x_load: pulp.LpAffineExpression = 0
+                if x in x_to_read_quorum_vars:
+                    x_load += (fr * sum(x_to_read_quorum_vars[x]) /
+                               read_capacity[x])
+                if x in x_to_write_quorum_vars:
+                    x_load += ((1 - fr) * sum(x_to_write_quorum_vars[x]) /
+                                write_capacity[x])
+                problem += (x_load <= load_vars[fr], f'{x}{fr}')
+
+        # Solve the linear program.
         problem.solve(pulp.apis.PULP_CBC_CMD(msg=False))
         return ExplicitStrategy(nodes,
                                 read_quorums,

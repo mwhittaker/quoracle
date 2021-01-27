@@ -267,7 +267,7 @@ system.
 ```python
 distribution = {0.9: 0.9, 0.1: 0.1}
 simple_majority.capacity(read_fraction=distribution) # 5089
-crumbling_walls.capacity(read_fraction=distribution) # 6824
+crumbling_walls.capacity(read_fraction=distribution) # 5837
 paths.capacity(read_fraction=distribution)           # 5725
 ```
 

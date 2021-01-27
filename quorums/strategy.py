@@ -44,6 +44,18 @@ class ExplicitStrategy(Strategy[T]):
         self.writes = writes
         self.write_weights = write_weights
 
+        self.unweighted_read_load: Dict[T, float] = \
+                collections.defaultdict(float)
+        for (read_quorum, weight) in zip(self.reads, self.read_weights):
+            for x in read_quorum:
+                self.unweighted_read_load[x] += weight
+
+        self.unweighted_write_load: Dict[T, float] = \
+                collections.defaultdict(float)
+        for (write_quorum, weight) in zip(self.writes, self.write_weights):
+            for x in write_quorum:
+                self.unweighted_write_load[x] += weight
+
     def __str__(self) -> str:
         non_zero_reads = {tuple(r): p
                           for (r, p) in zip(self.reads, self.read_weights)
@@ -66,29 +78,31 @@ class ExplicitStrategy(Strategy[T]):
              write_fraction: Optional[Distribution] = None) \
              -> float:
         d = distribution.canonicalize_rw(read_fraction, write_fraction)
-        fr = sum(f * weight for (f, weight) in d.items())
+        return sum(weight * self._load(fr)
+                   for (fr, weight) in d.items())
 
-        read_load: Dict[T, float] = collections.defaultdict(float)
-        for (read_quorum, weight) in zip(self.reads, self.read_weights):
-            for x in read_quorum:
-                read_load[x] += weight
+    def node_load(self,
+                  x: T,
+                  read_fraction: Optional[Distribution] = None,
+                  write_fraction: Optional[Distribution] = None) \
+                  -> float:
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        return sum(weight * self._node_load(x, fr)
+                   for (fr, weight) in d.items())
 
-        write_load: Dict[T, float] = collections.defaultdict(float)
-        for (write_quorum, weight) in zip(self.writes, self.write_weights):
-            for x in write_quorum:
-                write_load[x] += weight
+    def _node_load(self, x: T, fr: float) -> float:
+        """
+        _node_load returns the load on x given a fixed read fraction fr.
+        """
+        fw = 1 - fr
+        return (fr * self.unweighted_read_load[x] / self.read_capacity[x] +
+                fw * self.unweighted_write_load[x] / self.write_capacity[x])
 
-        loads: List[float] = []
-        for node in self.nodes:
-            x = node.x
-            load = 0.0
-            if x in read_load:
-                load += fr * read_load[x] / self.read_capacity[x]
-            if x in write_load:
-                load += (1 - fr) * write_load[x] / self.write_capacity[x]
-            loads.append(load)
-
-        return max(loads)
+    def _load(self, fr: float) -> float:
+        """
+        _load returns the load given a fixed read fraction fr.
+        """
+        return max(self._node_load(node.x, fr) for node in self.nodes)
 
     # TODO(mwhittaker): Add read/write load and capacity and read/write cap.
 
