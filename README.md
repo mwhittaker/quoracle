@@ -1,7 +1,15 @@
 Quorums
 =======
 
-# Tutorial
+## Installation
+TODO(mwhittaker): Make this package pip'able. For now, you have to clone and
+install the dependencies yourself:
+
+```
+pip install -r requirements.txt
+```
+
+## Tutorial
 Given a set of nodes `X`, a _read-write quorum system_ is a pair `(R, W)` where
 `R` is a set of subsets of `X` called _read quorums_ and `W` is a set of
 subsets of `X` called _write quorums_. A read-write quorum system satisfies the
