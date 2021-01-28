@@ -106,49 +106,39 @@ class Strategy(Generic[T]):
                           read_fraction: Optional[Distribution] = None,
                           write_fraction: Optional[Distribution] = None) \
                           -> None:
-        nodes = nodes or list(self.nodes)
-        x_list = [node.x for node in nodes]
-        x_index = {x: i for (i, x) in enumerate(x_list)}
-        x_ticks = list(range(len(x_list)))
-        read_cmap = matplotlib.cm.get_cmap('Reds')
-        write_cmap = matplotlib.cm.get_cmap('Blues')
-        d = distribution.canonicalize_rw(read_fraction, write_fraction)
-        fr = sum(weight * fr for (fr, weight) in d.items())
-        fw = 1 - fr
+        self._plot_node_load_or_capacity_on(plot_load=True,
+                                            ax=ax,
+                                            nodes=nodes,
+                                            read_fraction=read_fraction,
+                                            write_fraction=write_fraction)
 
-        def read_quorum_to_bar_heights(quorum: Set[T]) -> np.array:
-            bar_heights = np.zeros(len(x_list))
-            for x in quorum:
-                bar_heights[x_index[x]] = 1 / self.read_capacity[x]
-            return bar_heights
+    def plot_node_capacity(self,
+                           filename: str,
+                           nodes: Optional[List[Node[T]]] = None,
+                           read_fraction: Optional[Distribution] = None,
+                           write_fraction: Optional[Distribution] = None) \
+                           -> None:
+        fig, ax = plt.subplots()
+        self.plot_node_capacity_on(ax,
+                                   nodes=nodes or list(self.nodes),
+                                   read_fraction=read_fraction,
+                                   write_fraction=write_fraction)
+        ax.set_xlabel('Node')
+        ax.set_ylabel('Throughput')
+        fig.tight_layout()
+        fig.savefig(filename)
 
-        def write_quorum_to_bar_heights(quorum: Set[T]) -> np.array:
-            bar_heights = np.zeros(len(x_list))
-            for x in quorum:
-                bar_heights[x_index[x]] = 1 / self.write_capacity[x]
-            return bar_heights
-
-        bottom = np.zeros(len(x_list))
-        for (i, (rq, weight)) in enumerate(zip(self.reads, self.read_weights)):
-            bar_heights = fr * weight * read_quorum_to_bar_heights(rq)
-            ax.bar(x_ticks,
-                   bar_heights,
-                   bottom=bottom,
-                   color=read_cmap(1 - i * 0.75 / len(self.reads)),
-                   edgecolor='white', width=0.8)
-            bottom += bar_heights
-
-        for (i, (wq, weight)) in enumerate(zip(self.writes, self.write_weights)):
-            bar_heights = fw * weight * write_quorum_to_bar_heights(wq)
-            ax.bar(x_ticks,
-                   bar_heights,
-                   bottom=bottom,
-                   color=write_cmap(1 - i * 0.75 / len(self.writes)),
-                   edgecolor='white', width=0.8)
-            bottom += bar_heights
-
-        ax.set_xticks(x_ticks)
-        ax.set_xticklabels(str(x) for x in x_list)
+    def plot_node_capacity_on(self,
+                              ax: plt.Axes,
+                              nodes: Optional[List[Node[T]]] = None,
+                              read_fraction: Optional[Distribution] = None,
+                              write_fraction: Optional[Distribution] = None) \
+                              -> None:
+        self._plot_node_load_or_capacity_on(plot_load=False,
+                                            ax=ax,
+                                            nodes=nodes,
+                                            read_fraction=read_fraction,
+                                            write_fraction=write_fraction)
 
     def _node_load(self, x: T, fr: float) -> float:
         """
@@ -164,4 +154,65 @@ class Strategy(Generic[T]):
         """
         return max(self._node_load(node.x, fr) for node in self.nodes)
 
-    # TODO(mwhittaker): Add read/write load and capacity and read/write cap.
+    def _plot_node_load_or_capacity_on(
+            self,
+            plot_load: bool,
+            ax: plt.Axes,
+            nodes: Optional[List[Node[T]]] = None,
+            read_fraction: Optional[Distribution] = None,
+            write_fraction: Optional[Distribution] = None) \
+            -> None:
+        nodes = nodes or list(self.nodes)
+        x_list = [node.x for node in nodes]
+        x_index = {x: i for (i, x) in enumerate(x_list)}
+        x_ticks = list(range(len(x_list)))
+        read_cmap = matplotlib.cm.get_cmap('Reds')
+        write_cmap = matplotlib.cm.get_cmap('Blues')
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        fr = sum(weight * fr for (fr, weight) in d.items())
+        fw = 1 - fr
+
+        def read_quorum_to_bar_heights(quorum: Set[T]) -> np.array:
+            bar_heights = np.zeros(len(x_list))
+            for x in quorum:
+                bar_heights[x_index[x]] = 1
+                if plot_load:
+                    bar_heights[x_index[x]] /= self.read_capacity[x]
+            return bar_heights
+
+        def write_quorum_to_bar_heights(quorum: Set[T]) -> np.array:
+            bar_heights = np.zeros(len(x_list))
+            for x in quorum:
+                bar_heights[x_index[x]] = 1
+                if plot_load:
+                    bar_heights[x_index[x]] /= self.write_capacity[x]
+            return bar_heights
+
+        capacity = self.capacity(read_fraction=read_fraction,
+                                 write_fraction=write_fraction)
+
+        bottom = np.zeros(len(x_list))
+        for (i, (rq, weight)) in enumerate(zip(self.reads, self.read_weights)):
+            bar_heights = fr * weight * read_quorum_to_bar_heights(rq)
+            if not plot_load:
+                bar_heights *= capacity
+            ax.bar(x_ticks,
+                   bar_heights,
+                   bottom=bottom,
+                   color=read_cmap(1 - i * 0.75 / len(self.reads)),
+                   edgecolor='white', width=0.8)
+            bottom += bar_heights
+
+        for (i, (wq, weight)) in enumerate(zip(self.writes, self.write_weights)):
+            bar_heights = fw * weight * write_quorum_to_bar_heights(wq)
+            if not plot_load:
+                bar_heights *= capacity
+            ax.bar(x_ticks,
+                   bar_heights,
+                   bottom=bottom,
+                   color=write_cmap(1 - i * 0.75 / len(self.writes)),
+                   edgecolor='white', width=0.8)
+            bottom += bar_heights
+
+        ax.set_xticks(x_ticks)
+        ax.set_xticklabels(str(x) for x in x_list)
