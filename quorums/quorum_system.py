@@ -4,7 +4,7 @@
 from . import distribution
 from .distribution import Distribution
 from .expr import Expr, Node
-from .strategy import ExplicitStrategy, Strategy
+from .strategy import Strategy
 from typing import Dict, Iterator, Generic, List, Optional, Set, TypeVar
 import collections
 import itertools
@@ -251,8 +251,17 @@ class QuorumSystem(Generic[T]):
 
         # Solve the linear program.
         problem.solve(pulp.apis.PULP_CBC_CMD(msg=False))
-        return ExplicitStrategy(nodes,
-                                read_quorums,
-                                [v.varValue for v in read_quorum_vars],
-                                write_quorums,
-                                [v.varValue for v in write_quorum_vars])
+
+        non_zero_read_quorums = [
+            (rq, v.varValue)
+            for (rq, v) in zip(read_quorums, read_quorum_vars)
+            if v.varValue != 0]
+        non_zero_write_quorums = [
+            (wq, v.varValue)
+            for (wq, v) in zip(write_quorums, write_quorum_vars)
+            if v.varValue != 0]
+        return Strategy(nodes,
+                        [rq for (rq, _) in non_zero_read_quorums],
+                        [weight for (_, weight) in non_zero_read_quorums],
+                        [wq for (wq, _) in non_zero_write_quorums],
+                        [weight for (_, weight) in non_zero_write_quorums])
