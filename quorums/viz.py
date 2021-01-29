@@ -1,8 +1,11 @@
 from . import distribution
+from . import geometry
 from .distribution import Distribution
 from .expr import Node
+from .geometry import Point, Segment
 from .strategy import Strategy
-from typing import List, Optional, Set, TypeVar
+from typing import Dict, List, Optional, Set, Tuple, TypeVar
+import collections
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -146,3 +149,57 @@ def _plot_node_load_on(ax: plt.Axes,
                  write_capacities, matplotlib.cm.get_cmap('Blues'))
     ax.set_xticks(x_ticks)
     ax.set_xticklabels(str(x) for x in x_list)
+
+
+def plot_load_distribution(filename: str,
+                           strategy: Strategy[T],
+                           nodes: Optional[List[Node[T]]] = None):
+    fig, ax = plt.subplots()
+    plot_load_distribution_on(ax, strategy, nodes)
+    ax.set_xlabel('Read Fraction')
+    ax.set_ylabel('Load')
+    fig.tight_layout()
+    fig.savefig(filename)
+
+
+def _group(segments: Dict[T, Segment]) -> Dict[Segment, List[T]]:
+    groups: Dict[Segment, List[T]] = collections.defaultdict(list)
+    for x, segment in segments.items():
+        matches = (s for s in groups if segment.approximately_equal(s))
+        groups[next(matches, segment)].append(x)
+    return groups
+
+
+def plot_load_distribution_on(ax: plt.Axes,
+                              strategy: Strategy[T],
+                              nodes: Optional[List[Node[T]]] = None):
+    nodes = nodes or list(strategy.nodes)
+
+    # We want to plot every node's load distribution. Multiple nodes might
+    # have the same load distribution, so we group the nodes by their
+    # distribution. The grouping is a little annoying because two floats
+    # might not be exactly equal but pretty close.
+    groups = _group({
+        node.x: Segment(
+            Point(0, strategy.node_load(node, read_fraction=0)),
+            Point(1, strategy.node_load(node, read_fraction=1))
+        )
+        for node in nodes
+    })
+
+    # Compute and plot the max of all segments. We plot the load first so that
+    # it lies underneath the node loads.
+    path = geometry.max_of_segments(list(groups.keys()))
+    ax.plot([p[0] for p in path],
+            [p[1] for p in path],
+            label='load',
+            linewidth=4)
+
+    # We plot the node loads second so that they appear above the load.
+    for segment, xs in groups.items():
+        ax.plot([segment.l.x, segment.r.x],
+                [segment.l.y, segment.r.y],
+                '--',
+                label=','.join(str(x) for x in xs),
+                linewidth=2,
+                alpha=0.75)

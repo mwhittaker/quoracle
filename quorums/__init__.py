@@ -7,4 +7,6 @@ from .viz import (
     plot_node_utilization_on,
     plot_node_throughput,
     plot_node_throughput_on,
+    plot_load_distribution,
+    plot_load_distribution_on,
 )
