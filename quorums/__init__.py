@@ -1,2 +1,10 @@
 from .expr import Node, choose, majority
 from .quorum_system import QuorumSystem
+from .viz import (
+    plot_node_load,
+    plot_node_load_on,
+    plot_node_utilization,
+    plot_node_utilization_on,
+    plot_node_throughput,
+    plot_node_throughput_on,
+)
