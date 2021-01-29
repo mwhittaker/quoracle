@@ -1,4 +1,5 @@
 from typing import Any, Callable, List, NamedTuple, Optional, Tuple
+import math
 import unittest
 
 
@@ -26,12 +27,19 @@ class Segment:
         else:
             return False
 
-    def compatible(self, other: 'Segment') -> float:
-        return self.l.x == other.l.x and self.r.x == other.r.x
+    def __hash__(self) -> int:
+        return hash((self.l, self.r))
 
     def __call__(self, x: float) -> float:
         assert self.l.x <= x <= self.r.x
         return self.slope() * (x - self.l.x) + self.l.y
+
+    def approximately_equal(self, other: 'Segment') -> float:
+        return (math.isclose(self.l.y, other.l.y, rel_tol=1e-5) and
+                math.isclose(self.r.y, other.r.y, rel_tol=1e-5))
+
+    def compatible(self, other: 'Segment') -> float:
+        return self.l.x == other.l.x and self.r.x == other.r.x
 
     def slope(self) -> float:
         return (self.r.y - self.l.y) / (self.r.x - self.l.x)
@@ -72,36 +80,16 @@ def max_of_segments(segments: List[Segment]) -> List[Tuple[float, float]]:
     assert len({segment.l.x for segment in segments}) == 1
     assert len({segment.r.x for segment in segments}) == 1
 
-    # First, we remove any segments that are subsumed by other segments.
-    non_dominated: List[Segment] = []
-    for segment in segments:
-        if any(other.above_eq(segment) for other in non_dominated):
-            # If this segment is dominated by another, we exclude it.
-            pass
-        else:
-            # Otherwise, we add this segment and remove any that it dominates.
-            non_dominated = [other
-                             for other in non_dominated
-                             if not segment.above_eq(other)]
-            non_dominated.append(segment)
-
-    # Next, we start at the leftmost segment and continually jump over to the
-    # segment with the first intersection.
-    segment = max(non_dominated, key=lambda segment: segment.l.y)
-    path: List[Point] = [segment.l]
-    while True:
-        intersections: List[Tuple[Point, Segment]] = []
-        for other in non_dominated:
-            p = segment.intersection(other)
-            if p is not None and p.x > path[-1].x:
-                intersections.append((p, other))
-
-        if len(intersections) == 0:
-            path.append(segment.r)
-            return [(p.x, p.y) for p in path]
-
-        intersection, segment = min(intersections, key=lambda t: t[0].x)
-        path.append(intersection)
+    # We compute the x-coordinate of every intersection point. We sort the
+    # x-coordinates and for every x, we compute the highest line at that point.
+    xs: List[float] = [0.0, 1.0]
+    for (i, s1) in enumerate(segments):
+        for (j, s2) in enumerate(segments[i + 1:], i + 1):
+            p = s1.intersection(s2)
+            if p is not None:
+                xs.append(p.x)
+    xs.sort()
+    return [(x, max(segments, key=lambda s: s(x))(x)) for x in xs]
 
 
 class TestGeometry(unittest.TestCase):
@@ -231,6 +219,9 @@ class TestGeometry(unittest.TestCase):
         s4 = Segment(Point(0, 0.25), Point(1, 0.25))
         s5 = Segment(Point(0, 0.75), Point(1, 0.75))
 
+        def is_subset(xs: List[Any], ys: List[Any]) -> bool:
+            return all(x in ys for x in xs)
+
         for s in [s1, s2, s3, s4, s5]:
             self.assertEqual(max_of_segments([s]), [s.l, s.r])
 
@@ -255,8 +246,8 @@ class TestGeometry(unittest.TestCase):
             ([s1, s2, s5], [(0, 1), (0.25, 0.75), (0.75, 0.75), (1, 1)]),
         ]
         for segments, path in expected:
-            self.assertEqual(max_of_segments(segments), path, segments)
-            self.assertEqual(max_of_segments(segments[::-1]), path, segments)
+            self.assertTrue(is_subset(path, max_of_segments(segments)))
+            self.assertTrue(is_subset(path, max_of_segments(segments[::-1])))
 
 
 if __name__ == '__main__':
