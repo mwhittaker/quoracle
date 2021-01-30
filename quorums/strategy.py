@@ -69,6 +69,34 @@ class Strategy(Generic[T]):
         return sum(weight * self._load(fr)
                    for (fr, weight) in d.items())
 
+    # TODO(mwhittaker): Rename throughput.
+    def capacity(self,
+                 read_fraction: Optional[Distribution] = None,
+                 write_fraction: Optional[Distribution] = None) \
+                 -> float:
+        return 1 / self.load(read_fraction, write_fraction)
+
+    def network_load(self,
+                     read_fraction: Optional[Distribution] = None,
+                     write_fraction: Optional[Distribution] = None) -> float:
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        fr = sum(weight * f for (f, weight) in d.items())
+        read_network_load = fr * sum(
+            len(rq) * p
+            for (rq, p) in zip(self.reads, self.read_weights)
+        )
+        write_network_load = (1 - fr) * sum(
+            len(wq) * p
+            for (wq, p) in zip(self.writes, self.write_weights)
+        )
+        return read_network_load + write_network_load
+
+    def latency(self,
+                read_fraction: Optional[Distribution] = None,
+                write_fraction: Optional[Distribution] = None) -> float:
+        # TODO(mwhittaker): Implement.
+        return 0
+
     def node_load(self,
                   node: Node[T],
                   read_fraction: Optional[Distribution] = None,
@@ -78,11 +106,21 @@ class Strategy(Generic[T]):
         return sum(weight * self._node_load(node.x, fr)
                    for (fr, weight) in d.items())
 
-    def capacity(self,
-                 read_fraction: Optional[Distribution] = None,
-                 write_fraction: Optional[Distribution] = None) \
-                 -> float:
-        return 1 / self.load(read_fraction, write_fraction)
+    def node_utilization(self,
+                         node: Node[T],
+                         read_fraction: Optional[Distribution] = None,
+                         write_fraction: Optional[Distribution] = None) \
+                         -> float:
+        # TODO(mwhittaker): Implement.
+        return 0.0
+
+    def node_throghput(self,
+                       node: Node[T],
+                       read_fraction: Optional[Distribution] = None,
+                       write_fraction: Optional[Distribution] = None) \
+                       -> float:
+        # TODO(mwhittaker): Implement.
+        return 0.0
 
     def _node_load(self, x: T, fr: float) -> float:
         """

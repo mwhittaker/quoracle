@@ -1,4 +1,5 @@
 from typing import Dict, Iterator, Generic, List, Optional, Set, TypeVar
+import datetime
 import itertools
 import pulp
 
@@ -87,7 +88,8 @@ class Node(Expr[T]):
                  x: T,
                  capacity: Optional[float] = None,
                  read_capacity: Optional[float] = None,
-                 write_capacity: Optional[float] = None) -> None:
+                 write_capacity: Optional[float] = None,
+                 latency: datetime.timedelta = None) -> None:
         self.x = x
 
         # A user either specifies capacity or (read_capacity and
@@ -110,6 +112,12 @@ class Node(Expr[T]):
         else:
             raise ValueError('You must specify capacity or (read_capacity '
                              'and write_capacity)')
+
+        if latency is None:
+            self.latency = datetime.timedelta(seconds=1)
+        else:
+            self.latency = latency
+
 
     def __str__(self) -> str:
         return str(self.x)
