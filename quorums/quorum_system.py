@@ -2,14 +2,15 @@
 # Does this mess things up?
 
 from . import distribution
+from . import geometry
 from .distribution import Distribution
 from .expr import Expr, Node
-from .strategy import Strategy
-from typing import (Callable, Dict, Iterator, Generic, List, Optional, Set,
-                    TypeVar)
+from .geometry import Point, Segment
+from typing import *
 import collections
 import datetime
 import itertools
+import numpy as np
 import pulp
 
 
@@ -22,7 +23,6 @@ LATENCY = 'latency'
 
 # TODO(mwhittaker): Add some other non-optimal strategies.
 # TODO(mwhittaker): Make it easy to make arbitrary strategies.
-
 
 class QuorumSystem(Generic[T]):
     def __init__(self, reads: Optional[Expr[T]] = None,
@@ -45,6 +45,8 @@ class QuorumSystem(Generic[T]):
         else:
             raise ValueError('A QuorumSystem must be instantiated with a set '
                              'of read quorums or a set of write quorums')
+
+        self.x_to_node = {node.x: node for node in self.nodes()}
 
     def __repr__(self) -> str:
         return f'QuorumSystem(reads={self.reads}, writes={self.writes})'
@@ -302,7 +304,7 @@ class QuorumSystem(Generic[T]):
                 for (rq, v) in zip(read_quorums, read_quorum_vars)
                 for quorum in [{x_to_node[x] for x in rq}]
             )
-            write_latency = (1 - fr) * sum(
+            write_latency = (1. - fr) * sum(
                 v * self._write_quorum_latency(quorum).total_seconds()
                 for (wq, v) in zip(write_quorums, write_quorum_vars)
                 for quorum in [{x_to_node[x] for x in wq}]
@@ -377,8 +379,138 @@ class QuorumSystem(Generic[T]):
             (wq, v.varValue)
             for (wq, v) in zip(write_quorums, write_quorum_vars)
             if v.varValue != 0]
-        return Strategy(nodes,
+        return Strategy(self,
                         [rq for (rq, _) in non_zero_read_quorums],
                         [weight for (_, weight) in non_zero_read_quorums],
                         [wq for (wq, _) in non_zero_write_quorums],
                         [weight for (_, weight) in non_zero_write_quorums])
+
+
+class Strategy(Generic[T]):
+    def __init__(self,
+                 qs: QuorumSystem[T],
+                 reads: List[Set[T]],
+                 read_weights: List[float],
+                 writes: List[Set[T]],
+                 write_weights: List[float]) -> None:
+        self.qs = qs
+        self.reads = reads
+        self.read_weights = read_weights
+        self.writes = writes
+        self.write_weights = write_weights
+
+        self.unweighted_read_load: Dict[T, float] = \
+                collections.defaultdict(float)
+        for (read_quorum, weight) in zip(self.reads, self.read_weights):
+            for x in read_quorum:
+                self.unweighted_read_load[x] += weight
+
+        self.unweighted_write_load: Dict[T, float] = \
+                collections.defaultdict(float)
+        for (write_quorum, weight) in zip(self.writes, self.write_weights):
+            for x in write_quorum:
+                self.unweighted_write_load[x] += weight
+
+    def __str__(self) -> str:
+        non_zero_reads = {tuple(r): p
+                          for (r, p) in zip(self.reads, self.read_weights)
+                          if p > 0}
+        non_zero_writes = {tuple(w): p
+                           for (w, p) in zip(self.writes, self.write_weights)
+                           if p > 0}
+        return f'Strategy(reads={non_zero_reads}, writes={non_zero_writes})'
+
+    def get_read_quorum(self) -> Set[T]:
+        return np.random.choice(self.reads, p=self.read_weights)
+
+    def get_write_quorum(self) -> Set[T]:
+        return np.random.choice(self.writes, p=self.write_weights)
+
+    def load(self,
+             read_fraction: Optional[Distribution] = None,
+             write_fraction: Optional[Distribution] = None) \
+             -> float:
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        return sum(weight * self._load(fr)
+                   for (fr, weight) in d.items())
+
+    # TODO(mwhittaker): Rename throughput.
+    def capacity(self,
+                 read_fraction: Optional[Distribution] = None,
+                 write_fraction: Optional[Distribution] = None) \
+                 -> float:
+        return 1 / self.load(read_fraction, write_fraction)
+
+    def network_load(self,
+                     read_fraction: Optional[Distribution] = None,
+                     write_fraction: Optional[Distribution] = None) -> float:
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        fr = sum(weight * f for (f, weight) in d.items())
+        read_network_load = fr * sum(
+            len(rq) * p
+            for (rq, p) in zip(self.reads, self.read_weights)
+        )
+        write_network_load = (1 - fr) * sum(
+            len(wq) * p
+            for (wq, p) in zip(self.writes, self.write_weights)
+        )
+        return read_network_load + write_network_load
+
+    def latency(self,
+                read_fraction: Optional[Distribution] = None,
+                write_fraction: Optional[Distribution] = None) \
+                -> datetime.timedelta:
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        fr = sum(weight * f for (f, weight) in d.items())
+
+        read_latency = fr * sum((
+            self.qs._read_quorum_latency(quorum) * p # type: ignore
+            for (rq, p) in zip(self.reads, self.read_weights)
+            for quorum in [{self.qs.x_to_node[x] for x in rq}]
+        ), datetime.timedelta(seconds=0)) # type: ignore
+        write_latency = (1 - fr) * sum((
+            self.qs._write_quorum_latency(quorum) * p # type: ignore
+            for (wq, p) in zip(self.writes, self.write_weights)
+            for quorum in [{self.qs.x_to_node[x] for x in wq}]
+        ), datetime.timedelta(seconds=0)) # type:ignore
+        return read_latency + write_latency # type: ignore
+
+    def node_load(self,
+                  node: Node[T],
+                  read_fraction: Optional[Distribution] = None,
+                  write_fraction: Optional[Distribution] = None) \
+                  -> float:
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        return sum(weight * self._node_load(node.x, fr)
+                   for (fr, weight) in d.items())
+
+    def node_utilization(self,
+                         node: Node[T],
+                         read_fraction: Optional[Distribution] = None,
+                         write_fraction: Optional[Distribution] = None) \
+                         -> float:
+        # TODO(mwhittaker): Implement.
+        return 0.0
+
+    def node_throghput(self,
+                       node: Node[T],
+                       read_fraction: Optional[Distribution] = None,
+                       write_fraction: Optional[Distribution] = None) \
+                       -> float:
+        # TODO(mwhittaker): Implement.
+        return 0.0
+
+    def _node_load(self, x: T, fr: float) -> float:
+        """
+        _node_load returns the load on x given a fixed read fraction fr.
+        """
+        fw = 1 - fr
+        node = self.qs.x_to_node[x]
+        return (fr * self.unweighted_read_load[x] / node.read_capacity +
+                fw * self.unweighted_write_load[x] / node.write_capacity)
+
+    def _load(self, fr: float) -> float:
+        """
+        _load returns the load given a fixed read fraction fr.
+        """
+        return max(self._node_load(node.x, fr) for node in self.qs.nodes())

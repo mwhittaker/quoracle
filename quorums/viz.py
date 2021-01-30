@@ -3,7 +3,7 @@ from . import geometry
 from .distribution import Distribution
 from .expr import Node
 from .geometry import Point, Segment
-from .strategy import Strategy
+from .quorum_system import Strategy
 from typing import Dict, List, Optional, Set, Tuple, TypeVar
 import collections
 import matplotlib
@@ -34,7 +34,7 @@ def plot_node_load_on(ax: plt.Axes,
                       write_fraction: Optional[Distribution] = None):
     _plot_node_load_on(ax,
                        strategy,
-                       nodes or list(strategy.nodes),
+                       nodes or list(strategy.qs.nodes()),
                        scale=1,
                        scale_by_node_capacity=True,
                        read_fraction=read_fraction,
@@ -61,7 +61,7 @@ def plot_node_utilization_on(ax: plt.Axes,
                       write_fraction: Optional[Distribution] = None):
     _plot_node_load_on(ax,
                        strategy,
-                       nodes or list(strategy.nodes),
+                       nodes or list(strategy.qs.nodes()),
                        scale=strategy.capacity(read_fraction, write_fraction),
                        scale_by_node_capacity=True,
                        read_fraction=read_fraction,
@@ -88,7 +88,7 @@ def plot_node_throughput_on(ax: plt.Axes,
                             write_fraction: Optional[Distribution] = None):
     _plot_node_load_on(ax,
                        strategy,
-                       nodes or list(strategy.nodes),
+                       nodes or list(strategy.qs.nodes()),
                        scale=strategy.capacity(read_fraction, write_fraction),
                        scale_by_node_capacity=False,
                        read_fraction=read_fraction,
@@ -131,8 +131,7 @@ def _plot_node_load_on(ax: plt.Axes,
                    edgecolor='white', width=0.8)
 
             for j, (bar_height, bottom) in enumerate(zip(bar_heights, bottoms)):
-                # TODO(mwhittaker): Fix the unhappy typechecker.
-                text = ''.join(str(x) for x in sorted(list(quorum)))
+                text = ''.join(str(x) for x in sorted(list(quorum))) # type: ignore
                 if bar_height != 0:
                     ax.text(x_ticks[j], bottom + bar_height / 2, text,
                             ha='center', va='center')
@@ -173,7 +172,7 @@ def _group(segments: Dict[T, Segment]) -> Dict[Segment, List[T]]:
 def plot_load_distribution_on(ax: plt.Axes,
                               strategy: Strategy[T],
                               nodes: Optional[List[Node[T]]] = None):
-    nodes = nodes or list(strategy.nodes)
+    nodes = nodes or list(strategy.qs.nodes())
 
     # We want to plot every node's load distribution. Multiple nodes might
     # have the same load distribution, so we group the nodes by their
