@@ -1,5 +1,5 @@
 from .expr import Node, choose, majority
-from .quorum_system import QuorumSystem
+from .quorum_system import QuorumSystem, Strategy
 from .viz import (
     plot_node_load,
     plot_node_load_on,

@@ -4,7 +4,7 @@ from .distribution import Distribution
 from .expr import Node
 from .geometry import Point, Segment
 from .quorum_system import Strategy
-from typing import Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Dict, FrozenSet, List, Optional, Set, Tuple, TypeVar
 import collections
 import matplotlib
 import matplotlib.pyplot as plt
@@ -107,19 +107,18 @@ def _plot_node_load_on(ax: plt.Axes,
     x_index = {x: i for (i, x) in enumerate(x_list)}
     x_ticks = list(range(len(x_list)))
 
-    def one_hot(quorum: Set[T]) -> np.array:
+    def one_hot(quorum: FrozenSet[T]) -> np.array:
         bar_heights = np.zeros(len(x_list))
         for x in quorum:
             bar_heights[x_index[x]] = 1
         return bar_heights
 
-    def plot_quorums(quorums: List[Set[T]],
-                     weights: List[float],
+    def plot_quorums(sigma: Dict[FrozenSet[T], float],
                      fraction: float,
                      bottoms: np.array,
                      capacities: np.array,
                      cmap: matplotlib.colors.Colormap):
-        for (i, (quorum, weight)) in enumerate(zip(quorums, weights)):
+        for (i, (quorum, weight)) in enumerate(sigma.items()):
             bar_heights = scale * fraction * weight * one_hot(quorum)
             if scale_by_node_capacity:
                 bar_heights /= capacities
@@ -127,7 +126,7 @@ def _plot_node_load_on(ax: plt.Axes,
             ax.bar(x_ticks,
                    bar_heights,
                    bottom=bottoms,
-                   color=cmap(0.75 - i * 0.5 / len(quorums)),
+                   color=cmap(0.75 - i * 0.5 / len(sigma)),
                    edgecolor='white', width=0.8)
 
             for j, (bar_height, bottom) in enumerate(zip(bar_heights, bottoms)):
@@ -142,9 +141,9 @@ def _plot_node_load_on(ax: plt.Axes,
     read_capacities = np.array([node.read_capacity for node in nodes])
     write_capacities = np.array([node.write_capacity for node in nodes])
     bottoms = np.zeros(len(x_list))
-    plot_quorums(sigma.reads, sigma.read_weights, fr, bottoms, read_capacities,
+    plot_quorums(sigma.sigma_r, fr, bottoms, read_capacities,
                  matplotlib.cm.get_cmap('Reds'))
-    plot_quorums(sigma.writes, sigma.write_weights, fw, bottoms,
+    plot_quorums(sigma.sigma_w, fw, bottoms,
                  write_capacities, matplotlib.cm.get_cmap('Blues'))
     ax.set_xticks(x_ticks)
     ax.set_xticklabels(str(x) for x in x_list)
