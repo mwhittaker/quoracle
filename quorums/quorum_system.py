@@ -20,6 +20,11 @@ LATENCY = 'latency'
 # TODO(mwhittaker): Add some other non-optimal strategies.
 # TODO(mwhittaker): Make it easy to make arbitrary strategies.
 
+
+class NoStrategyFoundError(ValueError):
+    pass
+
+
 class QuorumSystem(Generic[T]):
     def __init__(self, reads: Optional[Expr[T]] = None,
                        writes: Optional[Expr[T]] = None) -> None:
@@ -167,9 +172,11 @@ class QuorumSystem(Generic[T]):
             read_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
             write_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
             if len(read_quorums) == 0:
-                raise ValueError(f'There are no {f}-resilient read quorums')
+                raise NoStrategyFoundError(
+                    f'There are no {f}-resilient read quorums')
             if len(write_quorums) == 0:
-                raise ValueError(f'There are no {f}-resilient write quorums')
+                raise NoStrategyFoundError(
+                    f'There are no {f}-resilient write quorums')
 
         read_quorums = self._minimize(read_quorums)
         write_quorums = self._minimize(write_quorums)
@@ -219,9 +226,11 @@ class QuorumSystem(Generic[T]):
             read_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
             write_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
             if len(read_quorums) == 0:
-                raise ValueError(f'There are no {f}-resilient read quorums')
+                raise NoStrategyFoundError(
+                    f'There are no {f}-resilient read quorums')
             if len(write_quorums) == 0:
-                raise ValueError(f'There are no {f}-resilient write quorums')
+                raise NoStrategyFoundError(
+                    f'There are no {f}-resilient write quorums')
             return self._load_optimal_strategy(
                 read_quorums,
                 write_quorums,
@@ -541,7 +550,8 @@ class QuorumSystem(Generic[T]):
         # Solve the linear program.
         problem.solve(pulp.apis.PULP_CBC_CMD(msg=False))
         if problem.status != pulp.LpStatusOptimal:
-            raise ValueError('no strategy satisfies the given constraints')
+            raise NoStrategyFoundError(
+                'no strategy satisfies the given constraints')
 
         # Prune out any quorums with 0 probability.
         sigma_r = {

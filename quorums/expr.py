@@ -246,6 +246,12 @@ class Choose(Expr[T]):
 
 
 def choose(k: int, es: List[Expr[T]]) -> Expr[T]:
+    if len(es) == 0:
+        raise ValueError('no expressions provided')
+
+    if not (1 <= k <= len(es)):
+        raise ValueError('k must be in the range [1, len(es)]')
+
     if k == 1:
         return Or(es)
     elif k == len(es):
@@ -255,4 +261,7 @@ def choose(k: int, es: List[Expr[T]]) -> Expr[T]:
 
 
 def majority(es: List[Expr[T]]) -> Expr[T]:
+    if len(es) == 0:
+        raise ValueError('no expressions provided')
+
     return choose(len(es) // 2 + 1, es)

@@ -1,5 +1,6 @@
 from .expr import Node, choose, majority
-from .quorum_system import QuorumSystem, Strategy
+from .quorum_system import NoStrategyFoundError, QuorumSystem, Strategy
+from .search import NoQuorumSystemFoundError, search
 from .viz import (
     plot_node_load,
     plot_node_load_on,
