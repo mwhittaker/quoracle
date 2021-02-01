@@ -55,6 +55,12 @@ class Expr(Generic[T]):
     def quorums(self) -> Iterator[Set[T]]:
         raise NotImplementedError
 
+    # TODO(mwhittaker): Add a function to return minimal quorums.
+
+    # TODO(mwhittaker): Add a function to check whether two expressions are
+    # equal. One simple way to do this is compare the set of minimal quorums.
+    # There might be more efficient ways to check if two expressions are equal.
+
     def is_quorum(self, xs: Set[T]) -> bool:
         raise NotImplementedError
 
