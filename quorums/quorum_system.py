@@ -180,8 +180,8 @@ class QuorumSystem(Generic[T]):
 
         read_quorums = self._minimize(read_quorums)
         write_quorums = self._minimize(write_quorums)
-        sigma_r = {frozenset(rq): 1 / len(rq) for rq in read_quorums}
-        sigma_w = {frozenset(wq): 1 / len(wq) for wq in write_quorums}
+        sigma_r = {frozenset(q): 1 / len(read_quorums) for q in read_quorums}
+        sigma_w = {frozenset(q): 1 / len(write_quorums) for q in write_quorums}
         return Strategy(self, sigma_r, sigma_w)
 
     def strategy(self,
