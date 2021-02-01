@@ -242,7 +242,8 @@ class Choose(Expr[T]):
         return sum(e._num_leaves() for e in self.es)
 
     def _dup_free_min_failures(self) -> int:
-        return sum(sorted(e._dup_free_min_failures() for e in self.es)[:self.k])
+        subfailures = [e._dup_free_min_failures() for e in self.es]
+        return sum(sorted(subfailures)[:len(subfailures) - self.k + 1])
 
 
 def choose(k: int, es: List[Expr[T]]) -> Expr[T]:
