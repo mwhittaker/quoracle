@@ -184,6 +184,11 @@ class QuorumSystem(Generic[T]):
         sigma_w = {frozenset(q): 1 / len(write_quorums) for q in write_quorums}
         return Strategy(self, sigma_r, sigma_w)
 
+    def make_strategy(self,
+                      sigma_r: Dict[FrozenSet[T], float],
+                      sigma_w: Dict[FrozenSet[T], float]) -> 'Strategy[T]':
+        return Strategy(self, sigma_r=sigma_r, sigma_w=sigma_w)
+
     def strategy(self,
                  optimize: str = LOAD,
                  load_limit: Optional[float] = None,
