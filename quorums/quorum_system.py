@@ -7,6 +7,7 @@ from typing import *
 import collections
 import datetime
 import itertools
+import math
 import numpy as np
 import pulp
 
@@ -187,7 +188,17 @@ class QuorumSystem(Generic[T]):
     def make_strategy(self,
                       sigma_r: Dict[FrozenSet[T], float],
                       sigma_w: Dict[FrozenSet[T], float]) -> 'Strategy[T]':
-        return Strategy(self, sigma_r=sigma_r, sigma_w=sigma_w)
+        if not all(0 <= weight for weight in sigma_r.values()):
+            raise ValueError('sigma_r has negative weights')
+        if not all(0 <= weight for weight in sigma_w.values()):
+            raise ValueError('sigma_w has negative weights')
+        normalized_sigma_r = {rq: weight / sum(sigma_r.values())
+                              for (rq, weight) in sigma_r.items()}
+        normalized_sigma_w = {wq: weight / sum(sigma_w.values())
+                              for (wq, weight) in sigma_w.items()}
+        return Strategy(self,
+                        sigma_r=normalized_sigma_r,
+                        sigma_w=normalized_sigma_w)
 
     def strategy(self,
                  optimize: str = LOAD,

@@ -2,7 +2,8 @@ from quorums import *
 from quorums.quorum_system import *
 import unittest
 
-class TestExpr(unittest.TestCase):
+
+class TestQuorumSystem(unittest.TestCase):
     def test_init(self):
         def quorums(e: Expr['str']) -> FrozenSet[FrozenSet[str]]:
             return frozenset(frozenset(q) for q in e.quorums())
