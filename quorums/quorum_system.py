@@ -192,6 +192,10 @@ class QuorumSystem(Generic[T]):
             raise ValueError('sigma_r has negative weights')
         if not all(0 <= weight for weight in sigma_w.values()):
             raise ValueError('sigma_w has negative weights')
+        if not all(self.is_read_quorum(set(rq)) for rq in sigma_r):
+            raise ValueError('sigma_r has non-read quorums')
+        if not all(self.is_write_quorum(set(wq)) for wq in sigma_w):
+            raise ValueError('sigma_w has non-write quorums')
         normalized_sigma_r = {rq: weight / sum(sigma_r.values())
                               for (rq, weight) in sigma_r.items()}
         normalized_sigma_w = {wq: weight / sum(sigma_w.values())
