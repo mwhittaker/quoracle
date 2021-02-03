@@ -106,7 +106,6 @@ def search(nodes: List[Node[T]],
             if qs.resilience() < resilience:
                 continue
 
-
             try:
                 sigma = qs.strategy(optimize = optimize,
                                     load_limit = load_limit,
