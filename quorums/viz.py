@@ -34,7 +34,7 @@ def plot_node_load_on(ax: plt.Axes,
                       write_fraction: Optional[Distribution] = None):
     _plot_node_load_on(ax,
                        strategy,
-                       nodes or list(strategy.qs.nodes()),
+                       nodes or list(strategy.nodes()),
                        scale=1,
                        scale_by_node_capacity=True,
                        read_fraction=read_fraction,
@@ -61,7 +61,7 @@ def plot_node_utilization_on(ax: plt.Axes,
                       write_fraction: Optional[Distribution] = None):
     _plot_node_load_on(ax,
                        strategy,
-                       nodes or list(strategy.qs.nodes()),
+                       nodes or list(strategy.nodes()),
                        scale=strategy.capacity(read_fraction, write_fraction),
                        scale_by_node_capacity=True,
                        read_fraction=read_fraction,
@@ -86,13 +86,28 @@ def plot_node_throughput_on(ax: plt.Axes,
                             nodes: Optional[List[Node[T]]] = None,
                             read_fraction: Optional[Distribution] = None,
                             write_fraction: Optional[Distribution] = None):
+    nodes = nodes or list(strategy.nodes())
+    d = distribution.canonicalize_rw(read_fraction, write_fraction)
+    fr = sum(weight * fr for (fr, weight) in d.items())
+    fw = 1 - fr
+    node_limits = [
+        fr * strategy.x_read_probability[node.x] / node_load +
+        fw * strategy.x_write_probability[node.x] / node_load
+        for node in nodes
+        for node_load in [strategy.node_load(
+            node,
+            read_fraction=read_fraction,
+            write_fraction=write_fraction
+        )]
+    ]
     _plot_node_load_on(ax,
                        strategy,
-                       nodes or list(strategy.qs.nodes()),
+                       nodes,
                        scale=strategy.capacity(read_fraction, write_fraction),
                        scale_by_node_capacity=False,
                        read_fraction=read_fraction,
-                       write_fraction=write_fraction)
+                       write_fraction=write_fraction,
+                       node_limits=node_limits)
 
 
 def _plot_node_load_on(ax: plt.Axes,
@@ -101,7 +116,8 @@ def _plot_node_load_on(ax: plt.Axes,
                        scale: float,
                        scale_by_node_capacity: bool,
                        read_fraction: Optional[Distribution] = None,
-                       write_fraction: Optional[Distribution] = None):
+                       write_fraction: Optional[Distribution] = None,
+                       node_limits: List[float] = None):
     d = distribution.canonicalize_rw(read_fraction, write_fraction)
     x_list = [node.x for node in nodes]
     x_index = {x: i for (i, x) in enumerate(x_list)}
@@ -113,6 +129,7 @@ def _plot_node_load_on(ax: plt.Axes,
             bar_heights[x_index[x]] = 1
         return bar_heights
 
+    width = 0.8
     def plot_quorums(sigma: Dict[FrozenSet[T], float],
                      fraction: float,
                      bottoms: np.array,
@@ -127,7 +144,7 @@ def _plot_node_load_on(ax: plt.Axes,
                    bar_heights,
                    bottom=bottoms,
                    color=cmap(0.75 - i * 0.5 / len(sigma)),
-                   edgecolor='white', width=0.8)
+                   edgecolor='white', width=width)
 
             for j, (bar_height, bottom) in enumerate(zip(bar_heights, bottoms)):
                 text = ''.join(str(x) for x in sorted(list(quorum))) # type: ignore
@@ -136,6 +153,7 @@ def _plot_node_load_on(ax: plt.Axes,
                             ha='center', va='center')
             bottoms += bar_heights
 
+    # Plot the quorums.
     fr = sum(weight * fr for (fr, weight) in d.items())
     fw = 1 - fr
     read_capacities = np.array([node.read_capacity for node in nodes])
@@ -145,6 +163,12 @@ def _plot_node_load_on(ax: plt.Axes,
                  matplotlib.cm.get_cmap('Reds'))
     plot_quorums(sigma.sigma_w, fw, bottoms,
                  write_capacities, matplotlib.cm.get_cmap('Blues'))
+
+    # Plot the limits, if there are any.
+    if node_limits is not None:
+        for (i, limit) in enumerate(node_limits):
+            ax.plot([i - width/2, i + width/2], [limit, limit], color='black')
+
     ax.set_xticks(x_ticks)
     ax.set_xticklabels(str(x) for x in x_list)
 
@@ -171,7 +195,7 @@ def _group(segments: Dict[T, Segment]) -> Dict[Segment, List[T]]:
 def plot_load_distribution_on(ax: plt.Axes,
                               strategy: Strategy[T],
                               nodes: Optional[List[Node[T]]] = None):
-    nodes = nodes or list(strategy.qs.nodes())
+    nodes = nodes or list(strategy.nodes())
 
     # We want to plot every node's load distribution. Multiple nodes might
     # have the same load distribution, so we group the nodes by their
