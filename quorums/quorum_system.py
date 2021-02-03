@@ -94,13 +94,13 @@ class QuorumSystem(Generic[T]):
              write_fraction: Optional[Distribution] = None,
              f: int = 0) -> float:
         return self.strategy(
-            optimize,
-            load_limit,
-            network_limit,
-            latency_limit,
-            read_fraction,
-            write_fraction,
-            f
+            optimize=optimize,
+            load_limit=load_limit,
+            network_limit=network_limit,
+            latency_limit=latency_limit,
+            read_fraction=read_fraction,
+            write_fraction=write_fraction,
+            f=f
         ).load(read_fraction, write_fraction)
 
     def capacity(self,
@@ -112,13 +112,13 @@ class QuorumSystem(Generic[T]):
                  write_fraction: Optional[Distribution] = None,
                  f: int = 0) -> float:
         return self.strategy(
-            optimize,
-            load_limit,
-            network_limit,
-            latency_limit,
-            read_fraction,
-            write_fraction,
-            f
+            optimize=optimize,
+            load_limit=load_limit,
+            network_limit=network_limit,
+            latency_limit=latency_limit,
+            read_fraction=read_fraction,
+            write_fraction=write_fraction,
+            f=f
         ).capacity(read_fraction, write_fraction)
 
     def network_load(self,
@@ -130,13 +130,13 @@ class QuorumSystem(Generic[T]):
                      write_fraction: Optional[Distribution] = None,
                      f: int = 0) -> float:
         return self.strategy(
-            optimize,
-            load_limit,
-            network_limit,
-            latency_limit,
-            read_fraction,
-            write_fraction,
-            f
+            optimize=optimize,
+            load_limit=load_limit,
+            network_limit=network_limit,
+            latency_limit=latency_limit,
+            read_fraction=read_fraction,
+            write_fraction=write_fraction,
+            f=f
         ).network_load(read_fraction, write_fraction)
 
     def latency(self,
@@ -148,13 +148,13 @@ class QuorumSystem(Generic[T]):
                 write_fraction: Optional[Distribution] = None,
                 f: int = 0) -> float:
         return self.strategy(
-            optimize,
-            load_limit,
-            network_limit,
-            latency_limit,
-            read_fraction,
-            write_fraction,
-            f
+            optimize=optimize,
+            load_limit=load_limit,
+            network_limit=network_limit,
+            latency_limit=latency_limit,
+            read_fraction=read_fraction,
+            write_fraction=write_fraction,
+            f=f
         ).latency(read_fraction, write_fraction)
 
     def uniform_strategy(self, f: int = 0) -> 'Strategy[T]':
