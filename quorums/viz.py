@@ -85,11 +85,13 @@ def plot_node_throughput_on(ax: plt.Axes,
                             strategy: Strategy[T],
                             nodes: Optional[List[Node[T]]] = None,
                             read_fraction: Optional[Distribution] = None,
-                            write_fraction: Optional[Distribution] = None):
+                            write_fraction: Optional[Distribution] = None,
+                            draw_node_capacities: bool = True):
     nodes = nodes or list(strategy.nodes())
     d = distribution.canonicalize_rw(read_fraction, write_fraction)
     fr = sum(weight * fr for (fr, weight) in d.items())
     fw = 1 - fr
+    # TODO(mwhittaker): Explain.
     node_limits = [
         fr * strategy.x_read_probability[node.x] / node_load +
         fw * strategy.x_write_probability[node.x] / node_load
@@ -107,7 +109,7 @@ def plot_node_throughput_on(ax: plt.Axes,
                        scale_by_node_capacity=False,
                        read_fraction=read_fraction,
                        write_fraction=write_fraction,
-                       node_limits=node_limits)
+                       node_limits=node_limits if draw_node_capacities else None)
 
 
 def _plot_node_load_on(ax: plt.Axes,
