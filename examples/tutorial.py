@@ -94,7 +94,7 @@ assert(paths.resilience() >= 1)
 
 distribution = {0.9: 0.9, 0.1: 0.1}
 print(simple_majority.capacity(read_fraction=distribution)) # 5089
-print(crumbling_walls.capacity(read_fraction=distribution)) # 6824
+print(crumbling_walls.capacity(read_fraction=distribution)) # 5824
 print(paths.capacity(read_fraction=distribution))           # 5725
 
 print(simple_majority.capacity(read_fraction=distribution, f=1)) # 3816

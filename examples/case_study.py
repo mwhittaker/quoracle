@@ -1,5 +1,12 @@
+# See https://stackoverflow.com/a/19521297/3187068
+import matplotlib
+matplotlib.use('pdf')
+font = {'size': 8}
+matplotlib.rc('font', **font)
+
 from quorums import *
 import datetime
+import matplotlib.pyplot as plt
 
 def main() -> None:
     def seconds(x: int) -> datetime.timedelta:
@@ -28,11 +35,14 @@ def main() -> None:
     grid = QuorumSystem(reads=a*b + c*d*e)
     paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
 
+    print('0-resilient Capacities')
+    print(maj.uniform_strategy().capacity(read_fraction=fr))
     print(maj.capacity(read_fraction=fr))
     print(grid.capacity(read_fraction=fr))
     print(paths.capacity(read_fraction=fr))
     print()
 
+    print('0-resilient Searched')
     opt = search(nodes=[a, b, c, d, e],
                  resilience=1,
                  read_fraction=fr)
@@ -42,12 +52,31 @@ def main() -> None:
     print(sigma.capacity(read_fraction=fr))
     print()
 
+    for (sigma, name, filename, size) in [
+        (maj.uniform_strategy(), 'Majority Quorum System', 'majority_uniform', (3.25, 1.75)),
+        # (grid.strategy(read_fraction=fr), 'Grid Quorum System'),
+        (sigma, 'Searched Quorum System', 'searched', (3.25, 1.75)),
+    ]:
+        fig, ax = plt.subplots(figsize=size)
+        plot_node_throughput_on(
+            ax,
+            sigma,
+            nodes = [a, b, c, d, e],
+            read_fraction=0.5,
+        )
+        ax.set_xlabel('Node')
+        ax.set_ylabel('Throughput')
+        fig.tight_layout()
+        fig.savefig(f'{filename}_throughputs.pdf')
+
+    print('1-resilient Capacities')
     print(maj)
     print(maj.capacity(read_fraction=fr, f=1))
     print(grid.capacity(read_fraction=fr, f=1))
     print(paths.capacity(read_fraction=fr, f=1))
     print()
 
+    print('1-resilient Searched')
     opt = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr, f=1)
     sigma = opt.strategy(read_fraction=fr, f=1)
     print(opt)
@@ -55,6 +84,9 @@ def main() -> None:
     print(sigma.capacity(read_fraction=fr))
     print()
 
+    print('Latency Optimal Capacities and Latencies')
+    print(maj.uniform_strategy().capacity(read_fraction=fr),
+          maj.uniform_strategy().latency(read_fraction=fr))
     print(maj.capacity(read_fraction=fr, optimize='latency', load_limit=1/2000),
           maj.latency(read_fraction=fr, optimize='latency', load_limit=1/2000))
     print(grid.capacity(read_fraction=fr, optimize='latency', load_limit=1/2000),
@@ -63,6 +95,7 @@ def main() -> None:
           paths.latency(read_fraction=fr, optimize='latency', load_limit=1/2000))
     print()
 
+    print('Latency Optimal Searched')
     opt = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr, optimize='latency', load_limit=1/2000)
     sigma = opt.strategy(read_fraction=fr, optimize='latency', load_limit=1/2000)
     print(opt)
