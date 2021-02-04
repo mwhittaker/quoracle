@@ -642,7 +642,8 @@ class Strategy(Generic[T]):
     def capacity(self,
                  read_fraction: Optional[Distribution] = None,
                  write_fraction: Optional[Distribution] = None) -> float:
-        return 1 / self.load(read_fraction, write_fraction)
+        d = distribution.canonicalize_rw(read_fraction, write_fraction)
+        return sum(p * 1 / self._load(fr) for (fr, p) in d.items())
 
     def network_load(self,
                      read_fraction: Optional[Distribution] = None,
