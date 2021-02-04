@@ -109,7 +109,8 @@ class TestStrategy(unittest.TestCase):
         }
         load = (0.7 * max(node_loads_08.values()) +
                 0.3 * max(node_loads_05.values()))
-        cap = 1 / load
+        cap = (0.7 * 1 / max(node_loads_08.values()) +
+                0.3 * 1/ max(node_loads_05.values()))
         self.assertAlmostEqual(sigma.load(read_fraction=fr), load)
         self.assertAlmostEqual(sigma.capacity(read_fraction=fr), cap)
         node_throughputs = {
