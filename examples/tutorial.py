@@ -19,6 +19,9 @@ QuorumSystem(writes=(a + b + c) * (d + e + f))
 
 QuorumSystem(reads=a*b*c + d*e*f, writes=(a + b + c) * (d + e + f))
 
+# QuorumSystem(reads=a+b+c, writes=d+e+f)
+# ValueError: Not all read quorums intersect all write quorums
+
 print(grid.is_read_quorum({'a', 'b', 'c'}))       # True
 print(grid.is_read_quorum({'a', 'b', 'c', 'd'}))  # True
 print(grid.is_read_quorum({'a', 'b', 'd'}))       # False
@@ -31,29 +34,57 @@ print(grid.read_resilience())  # 1
 print(grid.write_resilience()) # 2
 print(grid.resilience())       # 1
 
-strategy = grid.strategy(read_fraction=0.75)
+# The read quorum strategy.
+sigma_r = {
+    frozenset({'a', 'b', 'c'}): 2.,
+    frozenset({'d', 'e', 'f'}): 1.,
+}
 
+# The write quorum strategy.
+sigma_w = {
+    frozenset({'a', 'd'}): 1.,
+    frozenset({'b', 'e'}): 1.,
+    frozenset({'c', 'f'}): 1.,
+}
+strategy = grid.make_strategy(sigma_r, sigma_w)
+
+print(strategy.get_read_quorum())
 print(strategy.get_read_quorum())
 print(strategy.get_read_quorum())
 print(strategy.get_read_quorum())
 print(strategy.get_write_quorum())
 print(strategy.get_write_quorum())
 print(strategy.get_write_quorum())
+print(strategy.get_write_quorum())
 
-print(strategy.load(read_fraction=0.75)) # 0.458
+print(strategy.load(read_fraction=1)) # 2/3
 
-print(strategy.load(read_fraction=0))   # 0.333
-print(strategy.load(read_fraction=0.5)) # 0.416
-print(strategy.load(read_fraction=1))   # 0.5
+print(strategy.load(write_fraction=1)) # 1/3
 
-print(grid.load(read_fraction=0.25)) # 0.375
+print(strategy.load(read_fraction=0.25)) # 5/12
+
+print(strategy.node_load(a, read_fraction=0.25)) # 5/12
+print(strategy.node_load(b, read_fraction=0.25)) # 5/12
+print(strategy.node_load(c, read_fraction=0.25)) # 5/12
+print(strategy.node_load(d, read_fraction=0.25)) # 1/3
+print(strategy.node_load(e, read_fraction=0.25)) # 1/3
+print(strategy.node_load(f, read_fraction=0.25)) # 1/3
+
+strategy = grid.strategy(read_fraction=0.25)
+print(strategy)
+print(strategy.load(read_fraction=0.25)) # 3/8
+
+print(strategy.load(read_fraction=0))   # 1/3
+print(strategy.load(read_fraction=0.5)) # 5/12
+print(strategy.load(read_fraction=1))   # 1/2
+
+print(grid.load(read_fraction=0.25)) # 3/8
+
+print(grid.capacity(read_fraction=0.25)) # 8/3
 
 distribution = {0.1: 0.5, 0.75: 0.5}
 strategy = grid.strategy(read_fraction=distribution)
 print(strategy.load(read_fraction=distribution)) # 0.404
-
-strategy = grid.strategy(write_fraction=0.75)
-print(strategy.load(write_fraction=distribution)) # 0.429
 
 a = Node('a', capacity=1000)
 b = Node('b', capacity=500)
