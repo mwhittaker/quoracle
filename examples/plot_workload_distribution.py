@@ -40,9 +40,10 @@ def main():
             marker=next(markers), markevery=25, markersize=4)
 
     ax.legend(ncol=3, loc='lower center', bbox_to_anchor=(0.5, 1.0))
-    ax.set_ylabel('Capacity')
+    ax.set_ylabel('Capacity (commands per second)')
     ax.set_xlabel('Read Fraction')
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
+    ax.grid()
     fig.tight_layout()
     fig.savefig(f'workload_distribution.pdf')
 

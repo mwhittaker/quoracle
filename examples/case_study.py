@@ -43,9 +43,12 @@ def main() -> None:
     print()
 
     print('0-resilient Searched')
+    start = datetime.datetime.now()
     opt = search(nodes=[a, b, c, d, e],
                  resilience=1,
                  read_fraction=fr)
+    stop = datetime.datetime.now()
+    print((stop - start))
     sigma = opt.strategy(read_fraction=fr)
     print(opt)
     print(sigma)
@@ -53,9 +56,14 @@ def main() -> None:
     print()
 
     for (sigma, name, filename, size) in [
-        (maj.uniform_strategy(), 'Majority Quorum System', 'majority_uniform', (3.25, 1.75)),
-        # (grid.strategy(read_fraction=fr), 'Grid Quorum System'),
-        (sigma, 'Searched Quorum System', 'searched', (3.25, 1.75)),
+        (maj.uniform_strategy(),
+         'Majority Quorum System',
+         'majority_uniform',
+         (3.25, 2)),
+        (sigma,
+         'Searched Quorum System',
+         'searched',
+         (3.25, 1.75)),
     ]:
         fig, ax = plt.subplots(figsize=size)
         plot_node_throughput_on(
@@ -63,9 +71,10 @@ def main() -> None:
             sigma,
             nodes = [a, b, c, d, e],
             read_fraction=0.5,
+            draw_node_capacities=False,
         )
         ax.set_xlabel('Node')
-        ax.set_ylabel('Throughput')
+        ax.set_ylabel('Throughput\n(commands per second)')
         fig.tight_layout()
         fig.savefig(f'{filename}_throughputs.pdf')
 
@@ -77,7 +86,10 @@ def main() -> None:
     print()
 
     print('1-resilient Searched')
+    start = datetime.datetime.now()
     opt = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr, f=1)
+    stop = datetime.datetime.now()
+    print(stop - start)
     sigma = opt.strategy(read_fraction=fr, f=1)
     print(opt)
     print(sigma)
@@ -96,7 +108,11 @@ def main() -> None:
     print()
 
     print('Latency Optimal Searched')
-    opt = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr, optimize='latency', load_limit=1/2000)
+    start = datetime.datetime.now()
+    opt = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr,
+                 optimize='latency', load_limit=1/2000)
+    stop = datetime.datetime.now()
+    print(stop - start)
     sigma = opt.strategy(read_fraction=fr, optimize='latency', load_limit=1/2000)
     print(opt)
     print(sigma)
