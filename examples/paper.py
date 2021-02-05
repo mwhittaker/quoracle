@@ -29,8 +29,13 @@ def main() -> None:
     print()
 
     # Workload distribution.
-    grid = QuorumSystem(reads=a*b + c*d)
-    print(grid.capacity(read_fraction={0.9: 75, 0.5: 25})) # 229
+    grid = QuorumSystem(reads=a*c + b*d)
+    fr = {0.00: 10 / 18,
+          0.25: 4 / 18,
+          0.50: 2 / 18,
+          0.75: 1 / 18,
+          1.00: 1 / 18}
+    print(grid.capacity(read_fraction=fr)) # 159
     print()
 
     # f-resilient strategies.
