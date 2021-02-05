@@ -1,4 +1,4 @@
-from quorums import *
+from quoracle import *
 
 
 def load(qs: QuorumSystem, fr: float, f: int) -> float:

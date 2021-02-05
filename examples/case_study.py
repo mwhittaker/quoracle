@@ -4,7 +4,7 @@ matplotlib.use('pdf')
 font = {'size': 8}
 matplotlib.rc('font', **font)
 
-from quorums import *
+from quoracle import *
 import datetime
 import matplotlib.pyplot as plt
 

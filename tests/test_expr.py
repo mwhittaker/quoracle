@@ -1,5 +1,5 @@
-from quorums import *
-from quorums.expr import *
+from quoracle import *
+from quoracle.expr import *
 from typing import Any, FrozenSet
 import unittest
 

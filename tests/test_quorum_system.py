@@ -1,5 +1,5 @@
-from quorums import *
-from quorums.quorum_system import *
+from quoracle import *
+from quoracle.quorum_system import *
 import unittest
 
 

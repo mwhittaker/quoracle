@@ -1,4 +1,4 @@
-from quorums import *
+from quoracle import *
 
 a = Node('a')
 b = Node('b')

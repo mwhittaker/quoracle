@@ -1,6 +1,6 @@
-from quorums import *
-from quorums.expr import Expr
-from quorums.search import _dup_free_exprs, _partitionings
+from quoracle import *
+from quoracle.expr import Expr
+from quoracle.search import _dup_free_exprs, _partitionings
 from typing import Any, FrozenSet, List
 import datetime
 import unittest

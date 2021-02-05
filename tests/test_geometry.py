@@ -1,5 +1,5 @@
-from quorums import *
-from quorums.geometry import *
+from quoracle import *
+from quoracle.geometry import *
 from typing import Any, Callable, List, NamedTuple, Optional, Tuple
 import unittest
 

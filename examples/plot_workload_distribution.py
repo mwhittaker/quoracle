@@ -4,7 +4,7 @@ matplotlib.use('pdf')
 font = {'size': 8}
 matplotlib.rc('font', **font)
 
-from quorums import *
+from quoracle import *
 import itertools
 import matplotlib
 import matplotlib.pyplot as plt

@@ -1,4 +1,4 @@
-from quorums import *
+from quoracle import *
 import datetime
 import matplotlib
 import matplotlib.pyplot as plt

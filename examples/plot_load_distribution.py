@@ -1,4 +1,4 @@
-from quorums import *
+from quoracle import *
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
