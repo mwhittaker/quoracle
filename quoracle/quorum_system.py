@@ -18,9 +18,6 @@ LOAD = 'load'
 NETWORK = 'network'
 LATENCY = 'latency'
 
-# TODO(mwhittaker): Add some other non-optimal strategies.
-# TODO(mwhittaker): Make it easy to make arbitrary strategies.
-
 
 class NoStrategyFoundError(ValueError):
     pass
