@@ -6,7 +6,8 @@ systems](https://scholar.google.com/scholar?cluster=4847365665094368145). Run
 `pip install quoracle` and then follow along with the tutorial below to get
 started.
 
-## Quorum Systems
+## Tutorial
+### Quorum Systems
 Given a set of nodes `X`, a _read-write quorum system_ is a pair `(R, W)` where
 
 1. `R` is a set of subsets of `X` called _read quorums_,
@@ -109,7 +110,7 @@ True
 False
 ```
 
-## Resilience
+### Resilience
 The _read resilience_ of our quorum system is the largest number `f` such that
 despite the failure of any `f` nodes, we still have at least one read quorum.
 _Write resilience_ is defined similarly, and _resilience_ is the minimum of
@@ -132,7 +133,7 @@ which is 1.
 1
 ```
 
-## Strategies
+### Strategies
 A _strategy_ is a discrete probability distribution over the set of read and
 write quorums. A strategy gives us a way to pick quorums at random. We'll see
 how to construct optimal strategies in a second, but for now, we'll construct a
@@ -182,7 +183,7 @@ random.
 {'a', 'd'}
 ```
 
-## Load and Capacity
+### Load and Capacity
 Typically in a distributed system, a read quorum of nodes is contacted to
 perform a read, and a write quorum of nodes is contacted to perform a write.
 Assume we have a workload with a _read fraction_ `fr` of reads and a _write
@@ -349,7 +350,7 @@ that it can achieve before a node becomes bottlenecked. Here, if every node
 could process 100 commands per second, then our quorum system could process
 800/3 commands per second.
 
-## Workload Distributions
+### Workload Distributions
 In the real world, we don't often have a workload with a fixed read fraction.
 Workloads change over time. Instead of specifying a fixed read fraction, we can
 provide a discrete probability distribution of read fractions. Here, we say
@@ -364,7 +365,7 @@ distribution.
 0.40416666474999996
 ```
 
-## Heterogeneous Node
+### Heterogeneous Node
 In the real world, not all nodes are equal. We often run distributed systems on
 heterogeneous hardware, so some nodes might be faster than others. To model
 this, we instantiate every node with its capacity. Here, nodes `a`, `c`, and
@@ -420,7 +421,7 @@ This throughput decreases as we increase the fraction of writes.
 2000.0
 ```
 
-## `f`-resilient Strategies
+### `f`-resilient Strategies
 Another real world complication is the fact that machines sometimes fail and
 are sometimes slow. If we contact a quorum of nodes, some of them may fail, and
 we'll get stuck waiting to hear back from them. Or, some of them may be
@@ -473,7 +474,7 @@ capacity of 2000 (the same as the grid), but a 1-resilient capacity of 1333
 1333.3333333333333
 ```
 
-## Latency
+### Latency
 In the real world, not all nodes are equally as far away. Some are close and
 some are far. To address this, we associate every node with a latency, i.e. the
 time the required to contact the node. We model this in quoracle by assigning
@@ -592,7 +593,7 @@ Traceback (most recent call last):
 quoracle.quorum_system.NoStrategyFoundError: no strategy satisfies the given constraints
 ```
 
-## Network Load
+### Network Load
 Another useful metric is network load. When a protocol performs a read, it has
 to send messages to every node in a read quorum, and when a protocol performs a
 write, it has to send messages to every node in a write quorum. The bigger the
@@ -621,7 +622,7 @@ Strategy(reads={('a', 'b', 'c'): 1.0}, writes={('c', 'f'): 1.0})
 ...                       latency_limit=seconds(4))
 ```
 
-## Search
+### Search
 Finding good quorum systems by hand is hard. quoracle includes a heuristic
 based search procedure that tries to find quorum systems that are optimal with
 respect a target metric and set of constraints. For example, lets try to find a
@@ -638,7 +639,7 @@ how long it takes. If the timeout expires, `search` returns the most optimal
 quorum system that it found so far.
 
 ```python
-## Search
+### Search
 >>> qs, sigma = search(nodes=[a, b, c, d, e, f],
 ...                    resilience=1,
 ...                    f=1,
@@ -662,3 +663,13 @@ Strategy(reads={('a', 'c', 'e', 'f'): 0.33333333, ('a', 'b', 'c', 'e'): 0.333333
 Here, the search procedure returns the quorum system `choose(3, [a, c, e,
 b+d+f])` with a capacity of 3500 commands per second and with latency and
 network load close to the limits specified.
+
+## Publishing To pypi
+First, bump the version in `setup.py`. Then, run the following where $VERSION
+is the current version in `setup.py`.
+
+```
+python -m unittest
+python -m build
+python -m twine upload dist/quoracle-$VERSION*
+```
