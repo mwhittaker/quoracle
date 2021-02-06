@@ -44,9 +44,9 @@ def main() -> None:
 
     print('0-resilient Searched')
     start = datetime.datetime.now()
-    opt = search(nodes=[a, b, c, d, e],
-                 resilience=1,
-                 read_fraction=fr)
+    opt, _ = search(nodes=[a, b, c, d, e],
+                    resilience=1,
+                    read_fraction=fr)
     stop = datetime.datetime.now()
     print((stop - start))
     sigma = opt.strategy(read_fraction=fr)
@@ -87,7 +87,7 @@ def main() -> None:
 
     print('1-resilient Searched')
     start = datetime.datetime.now()
-    opt = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr, f=1)
+    opt, _ = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr, f=1)
     stop = datetime.datetime.now()
     print(stop - start)
     sigma = opt.strategy(read_fraction=fr, f=1)
@@ -109,7 +109,7 @@ def main() -> None:
 
     print('Latency Optimal Searched')
     start = datetime.datetime.now()
-    opt = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr,
+    opt, _ = search(nodes=[a, b, c, d, e], resilience=1, read_fraction=fr,
                  optimize='latency', load_limit=1/2000)
     stop = datetime.datetime.now()
     print(stop - start)

@@ -70,7 +70,7 @@ def main() -> None:
     print()
 
     # Search.
-    qs = search(
+    qs, _ = search(
         nodes = [a, b, c, d],
         read_fraction = 1,
         optimize = 'latency',

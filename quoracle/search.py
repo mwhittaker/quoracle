@@ -1,7 +1,7 @@
 from .distribution import Distribution
 from .expr import choose, Expr, Node
 from .quorum_system import (LATENCY, LOAD, NETWORK, NoStrategyFoundError,
-                            QuorumSystem, Strategy)
+                            QuorumSystem, Strategy, Tuple)
 from typing import Iterator, List, Optional, TypeVar
 import datetime
 import itertools
@@ -83,7 +83,7 @@ def search(nodes: List[Node[T]],
            latency_limit: Optional[datetime.timedelta] = None,
            f: int = 0,
            timeout: datetime.timedelta = datetime.timedelta(seconds=0)) \
-           -> QuorumSystem[T]:
+           -> Tuple[QuorumSystem[T], Strategy[T]]:
     start_time = datetime.datetime.now()
 
     def metric(sigma: Strategy[T]) -> float:
@@ -95,10 +95,12 @@ def search(nodes: List[Node[T]],
             return sigma.latency(read_fraction, write_fraction).total_seconds()
 
     opt_qs: Optional[QuorumSystem[T]] = None
+    opt_sigma: Optional[Strategy[T]] = None
     opt_metric: Optional[float] = None
 
     def do_search(exprs: Iterator[Expr[T]]) -> None:
         nonlocal opt_qs
+        nonlocal opt_sigma
         nonlocal opt_metric
 
         for reads in exprs:
@@ -117,6 +119,7 @@ def search(nodes: List[Node[T]],
                 sigma_metric = metric(sigma)
                 if opt_metric is None or sigma_metric < opt_metric:
                     opt_qs = qs
+                    opt_sigma = sigma
                     opt_metric = sigma_metric
             except NoStrategyFoundError:
                 pass
@@ -131,4 +134,5 @@ def search(nodes: List[Node[T]],
     if opt_qs is None:
         raise ValueError('no quorum system found')
     else:
-        return opt_qs
+        assert opt_sigma is not None
+        return (opt_qs, opt_sigma)

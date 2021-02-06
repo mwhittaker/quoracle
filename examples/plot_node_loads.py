@@ -17,7 +17,7 @@ def main():
     simple_majority = QuorumSystem(reads=majority([a, b, c, d, e]))
     crumbling_walls = QuorumSystem(reads=a*b + c*d*e)
     paths = QuorumSystem(reads=a*b + a*c*e + d*e + d*c*b)
-    opt = search(nodes, read_fraction=fr, timeout=datetime.timedelta(seconds=9))
+    opt, _ = search(nodes, read_fraction=fr, timeout=datetime.timedelta(seconds=9))
 
     fig, ax = plt.subplots(3, 4, figsize = (6.3 * 2, 4.8 * 2), sharey='row')
     for i, qs in enumerate([simple_majority, crumbling_walls, paths, opt]):
