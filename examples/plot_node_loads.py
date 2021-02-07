@@ -1,10 +1,17 @@
+"""
+This script shows how to use plot_node_load_on, plot_node_utilization, and
+plot_node_throughput to plot the load, utilization, and throughput of nodes in
+a read-write quorum system.
+"""
+
 from quoracle import *
+import argparse
 import datetime
 import matplotlib
 import matplotlib.pyplot as plt
 
 
-def main():
+def main(output_filename: str) -> None:
     a = Node('a', write_capacity=1000, read_capacity=10000)
     b = Node('b', write_capacity=500, read_capacity=5000)
     c = Node('c', write_capacity=1000, read_capacity=10000)
@@ -31,11 +38,18 @@ def main():
     ax[0][2].set_title('Paths')
     ax[0][3].set_title(f'Opt {opt.reads}')
     ax[0][0].set_ylabel('Load')
-    ax[1][0].set_ylabel('Utilization at Peak Throughput')
-    ax[2][0].set_ylabel('Throughput at Peak Throughput')
+    ax[1][0].set_ylabel('Utilization')
+    ax[2][0].set_ylabel('Throughput')
     fig.tight_layout()
-    fig.savefig('node_loads.pdf')
+    fig.savefig(output_filename)
+    print(f'Wrote figure to "{output_filename}".')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output',
+                        type=str,
+                        default='node_loads.pdf',
+                        help='Output filename')
+    args = parser.parse_args()
+    main(args.output)

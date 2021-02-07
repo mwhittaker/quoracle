@@ -1,3 +1,8 @@
+"""
+This script contains the code used in our paper
+(https://mwhittaker.github.io/publications/quoracle.pdf).
+"""
+
 from quoracle import *
 import datetime
 

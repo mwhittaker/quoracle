@@ -1,3 +1,11 @@
+"""
+In this script, we generate a strategy sigma that is optimal for a distribution
+of read fractions. We plot this strategy's capacity as a function of read
+fraction and compare it to other strategies optimized for specific points in
+this distribution. This plot was used in our paper
+(https://mwhittaker.github.io/publications/quoracle.pdf).
+"""
+
 # See https://stackoverflow.com/a/19521297/3187068
 import matplotlib
 matplotlib.use('pdf')
@@ -5,12 +13,13 @@ font = {'size': 8}
 matplotlib.rc('font', **font)
 
 from quoracle import *
+import argparse
 import itertools
 import matplotlib
 import matplotlib.pyplot as plt
 
 
-def main():
+def main(output_filename: str) -> None:
     a = Node('a', write_capacity=100, read_capacity=200)
     b = Node('b', write_capacity=100, read_capacity=200)
     c = Node('c', write_capacity=50, read_capacity=100)
@@ -44,8 +53,15 @@ def main():
     ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
     ax.grid()
     fig.tight_layout()
-    fig.savefig(f'workload_distribution.pdf')
+    fig.savefig(output_filename)
+    print(f'Wrote figure to "{output_filename}".')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output',
+                        type=str,
+                        default='workload_distribution.pdf',
+                        help='Output filename')
+    args = parser.parse_args()
+    main(args.output)

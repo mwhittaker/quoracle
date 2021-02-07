@@ -1,9 +1,11 @@
 from quoracle import *
+import argparse
 import matplotlib
 import matplotlib.pyplot as plt
+import os.path
 
 
-def main():
+def main(output_directory: str):
     a = Node('a', capacity=100)
     b = Node('b', capacity=200)
     c = Node('c', capacity=100)
@@ -18,34 +20,40 @@ def main():
     }
 
     for name, qs in quorum_systems.items():
-        d = {0.0: 1, 0.1: 1, 0.2: 1, 0.3: 1, 0.4: 1, 0.5: 1,
-             0.6: 1, 0.7: 1, 0.8: 1, 0.9: 1, 1.0: 1}
+        dist = {0.0: 1., 0.1: 1., 0.2: 1., 0.3: 1., 0.4: 1., 0.5: 1.,
+                0.6: 1., 0.7: 1., 0.8: 1., 0.9: 1., 1.0: 1.}
         fig, axes = plt.subplots(3, 4, figsize=(6 * 2, 4 * 2), sharey='all')
         axes_iter = (axes[row][col] for row in range(3) for col in range(4))
 
-        for fr in d.keys():
+        for fr in dist.keys():
             sigma = qs.strategy(read_fraction=fr)
             ax = next(axes_iter)
             plot_load_distribution_on(ax, sigma, nodes)
             ax.set_title(f'Optimized For\nRead Fraction = {fr}')
             ax.set_xlabel('Read Fraction')
             ax.grid()
-            # ax.legend()
 
-        sigma = qs.strategy(read_fraction=d)
+        sigma = qs.strategy(read_fraction=dist)
         ax = next(axes_iter)
         plot_load_distribution_on(ax, sigma, nodes)
         ax.set_title('Optimized For\nUniform Read Fraction')
         ax.set_xlabel('Read Fraction')
         ax.grid()
-        # ax.legend()
 
         axes[0][0].set_ylabel('Load')
         axes[1][0].set_ylabel('Load')
         axes[2][0].set_ylabel('Load')
         fig.tight_layout()
-        fig.savefig(f'{name}.pdf')
+        output_filename = os.path.join(output_directory, f'{name}.pdf')
+        fig.savefig(output_filename)
+        print(f'Wrote figure to "{output_filename}".')
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--output',
+                        type=str,
+                        default='.',
+                        help='Output directory')
+    args = parser.parse_args()
+    main(args.output)

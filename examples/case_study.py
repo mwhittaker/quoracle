@@ -1,3 +1,8 @@
+"""
+This script contains the code used in the case study of our paper
+(https://mwhittaker.github.io/publications/quoracle.pdf).
+"""
+
 # See https://stackoverflow.com/a/19521297/3187068
 import matplotlib
 matplotlib.use('pdf')
@@ -7,6 +12,7 @@ matplotlib.rc('font', **font)
 from quoracle import *
 import datetime
 import matplotlib.pyplot as plt
+
 
 def main() -> None:
     def seconds(x: int) -> datetime.timedelta:
