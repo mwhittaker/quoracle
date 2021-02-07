@@ -8,8 +8,8 @@ import collections
 import datetime
 import itertools
 import math
-import numpy as np
 import pulp
+import random
 
 
 T = TypeVar('T')
@@ -623,12 +623,12 @@ class Strategy(Generic[T]):
         return self.qs.nodes()
 
     def get_read_quorum(self) -> Set[T]:
-        return set(np.random.choice(list(self.sigma_r.keys()),
-                                    p=list(self.sigma_r.values())))
+        return set(random.choices(list(self.sigma_r.keys()),
+                                  weights=list(self.sigma_r.values()))[0])
 
     def get_write_quorum(self) -> Set[T]:
-        return set(np.random.choice(list(self.sigma_w.keys()),
-                                    p=list(self.sigma_w.values())))
+        return set(random.choices(list(self.sigma_w.keys()),
+                                  weights=list(self.sigma_w.values()))[0])
 
     def load(self,
              read_fraction: Optional[Distribution] = None,

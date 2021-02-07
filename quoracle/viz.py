@@ -8,7 +8,6 @@ from typing import Dict, FrozenSet, List, Optional, Set, Tuple, TypeVar
 import collections
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 T = TypeVar('T')
@@ -125,22 +124,23 @@ def _plot_node_load_on(ax: plt.Axes,
     x_index = {x: i for (i, x) in enumerate(x_list)}
     x_ticks = list(range(len(x_list)))
 
-    def one_hot(quorum: FrozenSet[T]) -> np.array:
-        bar_heights = np.zeros(len(x_list))
+    def one_hot(quorum: FrozenSet[T]) -> List[float]:
+        bar_heights = [0.0] * len(x_list)
         for x in quorum:
-            bar_heights[x_index[x]] = 1
+            bar_heights[x_index[x]] = 1.
         return bar_heights
 
     width = 0.8
     def plot_quorums(sigma: Dict[FrozenSet[T], float],
                      fraction: float,
-                     bottoms: np.array,
-                     capacities: np.array,
+                     bottoms: List[float],
+                     capacities: List[float],
                      cmap: matplotlib.colors.Colormap):
         for (i, (quorum, weight)) in enumerate(sigma.items()):
-            bar_heights = scale * fraction * weight * one_hot(quorum)
+            bar_heights = [scale * fraction * weight * x for x in one_hot(quorum)]
             if scale_by_node_capacity:
-                bar_heights /= capacities
+                for j in range(len(bar_heights)):
+                    bar_heights[j] /= capacities[j]
 
             ax.bar(x_ticks,
                    bar_heights,
@@ -153,14 +153,16 @@ def _plot_node_load_on(ax: plt.Axes,
                 if bar_height != 0:
                     ax.text(x_ticks[j], bottom + bar_height / 2, text,
                             ha='center', va='center')
-            bottoms += bar_heights
+
+            for j in range(len(bar_heights)):
+                bottoms[j] += bar_heights[j]
 
     # Plot the quorums.
     fr = sum(weight * fr for (fr, weight) in d.items())
     fw = 1 - fr
-    read_capacities = np.array([node.read_capacity for node in nodes])
-    write_capacities = np.array([node.write_capacity for node in nodes])
-    bottoms = np.zeros(len(x_list))
+    read_capacities = [node.read_capacity for node in nodes]
+    write_capacities = [node.write_capacity for node in nodes]
+    bottoms = [0.0] * len(x_list)
     plot_quorums(sigma.sigma_r, fr, bottoms, read_capacities,
                  matplotlib.cm.get_cmap('Reds'))
     plot_quorums(sigma.sigma_w, fw, bottoms,
