@@ -8,7 +8,6 @@ from quoracle import *
 import itertools
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy as np
 
 
 def main():
@@ -25,7 +24,7 @@ def main():
     }
     qs = QuorumSystem(reads=a*c + b*d)
 
-    xs = np.arange(0, 1.01, 0.01)
+    xs = [0.01 * i for i in range(101)]
     markers = itertools.cycle(['o', 'v', '^', 'p', '*'])
     fig, ax = plt.subplots(figsize=(3.25, 2.5))
     for fr in dist.keys():
