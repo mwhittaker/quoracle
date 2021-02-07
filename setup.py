@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="quoracle",
-    version="0.0.2",
+    version="0.0.3",
     author="Michael Whittaker",
     author_email="mwhittttaker@gmail.com",
     description=("A library for modelling, analyzing, and optimizing quorum " +
@@ -16,7 +16,6 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     install_requires =[
         "matplotlib",
-        "numpy",
         "pulp",
     ],
     classifiers=[
