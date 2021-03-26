@@ -75,7 +75,7 @@ def main() -> None:
     print()
 
     # Search.
-    qs, _ = search(
+    qs, sigma = search(
         nodes = [a, b, c, d],
         read_fraction = 1,
         optimize = 'latency',
@@ -84,12 +84,12 @@ def main() -> None:
         # timeout = seconds(3),
     )
     print(qs) # a + b + c + d
-    sigma = qs.strategy(
-        read_fraction = 1,
-        optimize = 'latency',
-        load_limit = 1 / 150,
-        network_limit = 2,
-    )
+    # sigma = qs.strategy(
+    #     read_fraction = 1,
+    #     optimize = 'latency',
+    #     load_limit = 1 / 150,
+    #     network_limit = 2,
+    # )
     print(sigma) # c: 1/3 d: 2/3
     print(sigma.capacity(read_fraction=1)) # 150
     print(sigma.network_load(read_fraction=1)) # 1
