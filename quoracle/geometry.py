@@ -33,11 +33,11 @@ class Segment:
         assert self.l.x <= x <= self.r.x
         return self.slope() * (x - self.l.x) + self.l.y
 
-    def approximately_equal(self, other: 'Segment') -> float:
+    def approximately_equal(self, other: 'Segment') -> bool:
         return (math.isclose(self.l.y, other.l.y, rel_tol=1e-5) and
                 math.isclose(self.r.y, other.r.y, rel_tol=1e-5))
 
-    def compatible(self, other: 'Segment') -> float:
+    def compatible(self, other: 'Segment') -> bool:
         return self.l.x == other.l.x and self.r.x == other.r.x
 
     def slope(self) -> float:
