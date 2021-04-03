@@ -39,12 +39,12 @@ def main(output_filename: str) -> None:
     for fr in dist.keys():
         sigma = qs.strategy(read_fraction=fr)
         ys = [sigma.capacity(read_fraction=x) for x in xs]
-        ax.plot(xs, ys, '--', label=str(f'$\sigma_{{{fr}}}$'), linewidth=1,
+        ax.plot(xs, ys, '--', label=str(f'$\\sigma_{{{fr}}}$'), linewidth=1,
                 marker=next(markers), markevery=25, markersize=4, alpha=0.75)
 
     sigma = qs.strategy(read_fraction=dist)
     ys = [sigma.capacity(read_fraction=x) for x in xs]
-    ax.plot(xs, ys, label='$\sigma$', linewidth=1.5,
+    ax.plot(xs, ys, label='$\\sigma$', linewidth=1.5,
             marker=next(markers), markevery=25, markersize=4)
 
     ax.legend(ncol=3, loc='lower center', bbox_to_anchor=(0.5, 1.0))

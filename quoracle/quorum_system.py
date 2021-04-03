@@ -1,18 +1,26 @@
 from . import distribution
 from . import geometry
 from .distribution import Distribution
-from .expr import Expr, Node
+from .expr import Expr, Node, T
 from .geometry import Point, Segment
-from typing import *
+from typing import (
+    Any,
+    Dict,
+    Iterator,
+    Generic,
+    List,
+    Optional,
+    Set,
+    FrozenSet,
+    Callable,
+    Tuple,
+)
 import collections
 import datetime
 import itertools
 import math
 import pulp
 import random
-
-
-T = TypeVar('T')
 
 LOAD = 'load'
 NETWORK = 'network'
@@ -143,7 +151,7 @@ class QuorumSystem(Generic[T]):
                 latency_limit: Optional[datetime.timedelta] = None,
                 read_fraction: Optional[Distribution] = None,
                 write_fraction: Optional[Distribution] = None,
-                f: int = 0) -> float:
+                f: int = 0) -> datetime.timedelta:
         return self.strategy(
             optimize=optimize,
             load_limit=load_limit,
@@ -606,9 +614,7 @@ class Strategy(Generic[T]):
             for x in write_quorum:
                 self.x_write_probability[x] += weight
 
-    @no_type_check
     def __str__(self) -> str:
-        # T may not comparable, so mypy complains about this sort.
         reads = {tuple(sorted(rq)): p for (rq, p) in self.sigma_r.items()}
         writes = {tuple(sorted(wq)): p for (wq, p) in self.sigma_w.items()}
         return f'Strategy(reads={reads}, writes={writes})'
@@ -651,8 +657,6 @@ class Strategy(Generic[T]):
         writes = (1 - fr) * sum(p * len(wq) for (wq, p) in self.sigma_w.items())
         return reads + writes
 
-    # mypy doesn't like calling sum with timedeltas.
-    @no_type_check
     def latency(self,
                 read_fraction: Optional[Distribution] = None,
                 write_fraction: Optional[Distribution] = None) \
@@ -661,16 +665,16 @@ class Strategy(Generic[T]):
         fr = sum(p * fr for (fr, p) in d.items())
 
         reads = fr * sum((
-            p * self.qs._read_quorum_latency({self.node(x) for x in rq})
+            p * self.qs._read_quorum_latency({self.node(x) for x in rq})  # type: ignore[misc]
             for (rq, p) in self.sigma_r.items()
-        ), datetime.timedelta(seconds=0))
+        ), datetime.timedelta(seconds=0))  # type: ignore[arg-type]
 
         writes = (1 - fr) * sum((
-            p * self.qs._write_quorum_latency({self.node(x) for x in wq})
+            p * self.qs._write_quorum_latency({self.node(x) for x in wq})  # type: ignore[misc]
             for (wq, p) in self.sigma_w.items()
-        ), datetime.timedelta(seconds=0))
+        ), datetime.timedelta(seconds=0))  # type: ignore[arg-type]
 
-        return reads + writes
+        return reads + writes  # type: ignore[return-value]
 
     def node_load(self,
                   node: Node[T],

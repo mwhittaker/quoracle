@@ -1,14 +1,17 @@
-from typing import Dict, Iterator, Generic, List, Optional, Set, TypeVar
+from typing import Any, Dict, Iterator, Generic, List, Optional, Protocol, Set, TypeVar
 import datetime
 import itertools
 import pulp
 
 
-T = TypeVar('T')
+class SupportsLessThan(Protocol):
+    def __lt__(self, __other: Any) -> bool: ...
+
+T = TypeVar("T", bound=SupportsLessThan)
 
 
-def _min_hitting_set(sets: Iterator[Set[T]]) -> int:
-    x_vars: Dict[T, pulp.LpVariable] = dict()
+def _min_hitting_set(sets: Iterator[Set]) -> int:
+    x_vars: Dict[Any, pulp.LpVariable] = dict()
     next_id = itertools.count()
 
     problem = pulp.LpProblem("min_hitting_set", pulp.LpMinimize)
@@ -130,6 +133,9 @@ class Node(Expr[T]):
 
     def __repr__(self) -> str:
         return f'Node({self.x})'
+
+    def __lt__(self, other) -> bool:
+        return self.x < other.x
 
     def quorums(self) -> Iterator[Set[T]]:
         yield {self.x}
