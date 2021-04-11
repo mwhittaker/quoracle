@@ -4,7 +4,8 @@ Quoracle
 Quoracle is a library for constructing and analyzing [read-write quorum
 systems](https://scholar.google.com/scholar?cluster=4847365665094368145). Run
 `pip install quoracle` and then follow along with the tutorial below to get
-started.
+started. You can find more information on Quoracle in our [PaPoC '21
+paper](https://mwhittaker.github.io/publications/quoracle.pdf).
 
 ## Tutorial
 ### Quorum Systems
