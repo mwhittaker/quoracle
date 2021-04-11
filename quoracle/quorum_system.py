@@ -5,14 +5,14 @@ from .expr import Expr, Node, T
 from .geometry import Point, Segment
 from typing import (
     Any,
+    Callable,
     Dict,
-    Iterator,
+    FrozenSet,
     Generic,
+    Iterator,
     List,
     Optional,
     Set,
-    FrozenSet,
-    Callable,
     Tuple,
 )
 import collections

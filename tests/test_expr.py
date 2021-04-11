@@ -1,7 +1,6 @@
-import unittest
-
 from quoracle.expr import Expr, Node, choose
 from typing import Any, List, Set, FrozenSet
+import unittest
 
 class TestExpr(unittest.TestCase):
     def test_quorums(self):

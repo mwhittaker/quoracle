@@ -7,7 +7,8 @@ import pulp
 class SupportsLessThan(Protocol):
     def __lt__(self, __other: Any) -> bool: ...
 
-T = TypeVar("T", bound=SupportsLessThan)
+
+T = TypeVar('T', bound=SupportsLessThan)
 
 
 def _min_hitting_set(sets: Iterator[Set]) -> int:
