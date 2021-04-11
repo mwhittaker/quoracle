@@ -1,16 +1,13 @@
 from . import distribution
 from . import geometry
 from .distribution import Distribution
-from .expr import Node
+from .expr import Node, T
 from .geometry import Point, Segment
 from .quorum_system import Strategy
 from typing import Dict, FrozenSet, List, Optional, Set, Tuple, TypeVar
 import collections
 import matplotlib
 import matplotlib.pyplot as plt
-
-
-T = TypeVar('T')
 
 
 def plot_node_load(filename: str,

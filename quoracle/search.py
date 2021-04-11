@@ -1,13 +1,10 @@
 from .distribution import Distribution
-from .expr import choose, Expr, Node
+from .expr import choose, Expr, Node, T
 from .quorum_system import (LATENCY, LOAD, NETWORK, NoStrategyFoundError,
                             QuorumSystem, Strategy, Tuple)
-from typing import Iterator, List, Optional, TypeVar
+from typing import Iterator, List, Optional
 import datetime
 import itertools
-
-
-T = TypeVar('T')
 
 
 class NoQuorumSystemFoundError(ValueError):
