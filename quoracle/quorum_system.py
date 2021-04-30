@@ -374,10 +374,10 @@ class QuorumSystem(Generic[T]):
         node to be less than l. Using the example above, we have
 
                min l subject to
-               fr * r0 * rcap(a) + fw * (w0 + w1) * wcap(a) <= l
-               fr * r0 * rcap(b) + fw * (w2 + w3) * wcap(b) <= l
-               fr * r1 * rcap(c) + fw * (w0 + w2) * wcap(c) <= l
-               fr * r1 * rcap(d) + fw * (w1 + w3) * wcap(d) <= l
+               fr * r0 / rcap(a) + fw * (w0 + w1) / wcap(a) <= l
+               fr * r0 / rcap(b) + fw * (w2 + w3) / wcap(b) <= l
+               fr * r1 / rcap(c) + fw * (w0 + w2) / wcap(c) <= l
+               fr * r1 / rcap(d) + fw * (w1 + w3) / wcap(d) <= l
 
         To compute the load of a strategy with respect to a distribution of
         read_fractions, we compute the load for every value of fr and weight
@@ -385,14 +385,14 @@ class QuorumSystem(Generic[T]):
         the time and 0.5 20% of the time. We have:
 
                min 0.8 * l0.9 + 0.2 * l0.5
-               0.9 * r0 * rcap(a) + 0.1 * (w0 + w1) * wcap(a) <= l0.9
-               0.9 * r0 * rcap(b) + 0.1 * (w2 + w3) * wcap(b) <= l0.9
-               0.9 * r1 * rcap(c) + 0.1 * (w0 + w2) * wcap(c) <= l0.9
-               0.9 * r1 * rcap(d) + 0.1 * (w1 + w3) * wcap(d) <= l0.9
-               0.5 * r0 * rcap(a) + 0.5 * (w0 + w1) * wcap(a) <= l0.5
-               0.5 * r0 * rcap(b) + 0.5 * (w2 + w3) * wcap(b) <= l0.5
-               0.5 * r1 * rcap(c) + 0.5 * (w0 + w2) * wcap(c) <= l0.5
-               0.5 * r1 * rcap(d) + 0.5 * (w1 + w3) * wcap(d) <= l0.5
+               0.9 * r0 / rcap(a) + 0.1 * (w0 + w1) / wcap(a) <= l0.9
+               0.9 * r0 / rcap(b) + 0.1 * (w2 + w3) / wcap(b) <= l0.9
+               0.9 * r1 / rcap(c) + 0.1 * (w0 + w2) / wcap(c) <= l0.9
+               0.9 * r1 / rcap(d) + 0.1 * (w1 + w3) / wcap(d) <= l0.9
+               0.5 * r0 / rcap(a) + 0.5 * (w0 + w1) / wcap(a) <= l0.5
+               0.5 * r0 / rcap(b) + 0.5 * (w2 + w3) / wcap(b) <= l0.5
+               0.5 * r1 / rcap(c) + 0.5 * (w0 + w2) / wcap(c) <= l0.5
+               0.5 * r1 / rcap(d) + 0.5 * (w1 + w3) / wcap(d) <= l0.5
 
         Let the expression for load be LOAD.
 
@@ -443,10 +443,10 @@ class QuorumSystem(Generic[T]):
         Using the example above assuming a fixed fr, we have:
 
                min l subject to
-               fr * r0 * rcap(a) + fw * (w0 + w1) * wcap(a) <= l
-               fr * r0 * rcap(b) + fw * (w2 + w3) * wcap(b) <= l
-               fr * r1 * rcap(c) + fw * (w0 + w2) * wcap(c) <= l
-               fr * r1 * rcap(d) + fw * (w1 + w3) * wcap(d) <= l
+               fr * r0 / rcap(a) + fw * (w0 + w1) / wcap(a) <= l
+               fr * r0 / rcap(b) + fw * (w2 + w3) / wcap(b) <= l
+               fr * r1 / rcap(c) + fw * (w0 + w2) / wcap(c) <= l
+               fr * r1 / rcap(d) + fw * (w1 + w3) / wcap(d) <= l
                fr * (2*r0 + 2*r1) + fw * (2*w0 + 2*w1 + 2*w2 + 2*w3) <= 2
                fr * (1*r0 + 1*r1) + fw * (1*w0 + 1*w1 + 1*w2 + 1*w3) <= 3
 
@@ -455,10 +455,10 @@ class QuorumSystem(Generic[T]):
 
                min fr * (2*r0 + 2*r1) +
                    fw * (2*w0 + 2*w1 + 2*w2 + 2*w3) subject to
-               fr * r0 * rcap(a) + fw * (w0 + w1) * wcap(a) <= 4
-               fr * r0 * rcap(b) + fw * (w2 + w3) * wcap(b) <= 4
-               fr * r1 * rcap(c) + fw * (w0 + w2) * wcap(c) <= 4
-               fr * r1 * rcap(d) + fw * (w1 + w3) * wcap(d) <= 4
+               fr * r0 / rcap(a) + fw * (w0 + w1) / wcap(a) <= 4
+               fr * r0 / rcap(b) + fw * (w2 + w3) / wcap(b) <= 4
+               fr * r1 / rcap(c) + fw * (w0 + w2) / wcap(c) <= 4
+               fr * r1 / rcap(d) + fw * (w1 + w3) / wcap(d) <= 4
                fr * (1*r0 + 1*r1) + fw * (1*w0 + 1*w1 + 1*w2 + 1*w3) <= 5
         """
         # Create a variable for every read quorum and every write quorum. While
