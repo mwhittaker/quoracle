@@ -176,7 +176,7 @@ class QuorumSystem(Generic[T]):
         else:
             xs = list(self.elements())
             read_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
-            write_quorums = list(self._f_resilient_quorums(f, xs, self.reads))
+            write_quorums = list(self._f_resilient_quorums(f, xs, self.writes))
             if len(read_quorums) == 0:
                 raise NoStrategyFoundError(
                     f'There are no {f}-resilient read quorums')

@@ -44,6 +44,8 @@ class TestQuorumSystem(unittest.TestCase):
         b = Node('b')
         c = Node('c')
         d = Node('d')
+        e = Node('e')
+        f = Node('f')
 
         sigma = QuorumSystem(reads=a).uniform_strategy()
         self.assertEqual(sigma.sigma_r, {
@@ -126,6 +128,16 @@ class TestQuorumSystem(unittest.TestCase):
             frozenset({'a', 'd'}): 1 / 4,
             frozenset({'b', 'c'}): 1 / 4,
             frozenset({'b', 'd'}): 1 / 4,
+        })
+
+        sigma = QuorumSystem(reads=a*b+c*d+e*f).uniform_strategy(f=1)
+        self.assertEqual(sigma.sigma_r, {
+            frozenset({'a', 'b', 'c', 'd'}): 1 / 3,
+            frozenset({'a', 'b', 'e', 'f'}): 1 / 3,
+            frozenset({'c', 'd', 'e', 'f'}): 1 / 3,
+        })
+        self.assertEqual(sigma.sigma_w, {
+            frozenset({'a', 'b', 'c', 'd', 'e', 'f'}): 1,
         })
 
     def test_make_strategy(self):
