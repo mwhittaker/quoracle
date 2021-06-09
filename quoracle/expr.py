@@ -1,4 +1,6 @@
+from dataclasses import dataclass, InitVar
 from typing import Any, Dict, Iterator, Generic, List, Optional, Protocol, Set, TypeVar
+
 import datetime
 import itertools
 import pulp
@@ -93,41 +95,29 @@ class Expr(Generic[T]):
         raise NotImplementedError
 
 
+@dataclass
 class Node(Expr[T]):
-    def __init__(self,
-                 x: T,
-                 capacity: Optional[float] = None,
-                 read_capacity: Optional[float] = None,
-                 write_capacity: Optional[float] = None,
-                 latency: datetime.timedelta = None) -> None:
-        self.x = x
+    x: T
+    read_capacity: float = 1.0
+    write_capacity: float = 1.0
+    latency: datetime.timedelta = datetime.timedelta(seconds=1)
+    capacity: InitVar[Optional[float]] = None
+
+    def __post_init__(self, capacity):
+        latency = self.latency
 
         # A user either specifies capacity or (read_capacity and
         # write_capacity), but not both.
-        if (capacity is None and
-            read_capacity is None and
-            write_capacity is None):
-            self.read_capacity = 1.0
-            self.write_capacity = 1.0
-        elif (capacity is not None and
-              read_capacity is None and
-              write_capacity is None):
-            self.read_capacity = capacity
-            self.write_capacity = capacity
-        elif (capacity is None and
-              read_capacity is not None and
-              write_capacity is not None):
-            self.read_capacity = read_capacity
-            self.write_capacity = write_capacity
-        else:
+        if capacity is not None and self.read_capacity != 1.0 and self.write_capacity != 1.0:
             raise ValueError('You must specify capacity or (read_capacity '
                              'and write_capacity)')
 
-        if latency is None:
-            self.latency = datetime.timedelta(seconds=1)
-        else:
-            self.latency = latency
+        if capacity is not None:
+            self.read_capacity = capacity
+            self.write_capacity = capacity
 
+    def __hash__(self):
+        return self.x.__hash__()
 
     def __str__(self) -> str:
         return str(self.x)
